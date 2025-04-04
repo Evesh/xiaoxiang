@@ -1,0 +1,91 @@
+$sw-height: 30px;
+$sw-width: 51px;
+
+input {
+  &.sw {
+    opacity: 0;
+    position: absolute;
+    left: -9999px;
+
+    &:disabled {
+      &+label {
+        cursor: not-allowed;
+        opacity: 0.3;
+        background: #9e9e9e;
+
+        &:hover {
+          background: #9e9e9e;
+        }
+      }
+    }
+
+    &+label {
+      user-select: none;
+      transition: .2s ease;
+      display: inline-block;
+      height: $sw-height;
+      width: $sw-width;
+      position: relative;
+      box-shadow: inset 0 0 0px 2px #e4e4e4;
+      border-radius: 60px;
+
+      &:before {
+        content: "";
+        position: absolute;
+        display: block;
+        height: $sw-height;
+        width: $sw-height;
+        top: 0;
+        left: 0;
+        border-radius: $sw-height/2;
+        background: rgba(76, 217, 100, 0);
+        transition: .2s cubic-bezier(.24, 0, .5, 1);
+      }
+
+      /* White toggle */
+      &:after {
+        content: "";
+        position: absolute;
+        display: block;
+        height: 28px;
+        width: 28px;
+        top: 50%;
+        margin-top: -14px;
+        left: 1px;
+        border-radius: 60px;
+        background: #fff;
+        box-shadow: 0 0 0 1px hsla(0, 0%, 0%, 0.1), 0 4px 0px 0 hsla(0, 0%, 0%, .04), 0 4px 9px hsla(0, 0%, 0%, .13), 0 3px 3px hsla(0, 0%, 0%, .05);
+        transition: .35s cubic-bezier(.54, 1.60, .5, 1);
+      }
+
+      &:hover {
+        cursor: pointer;
+      }
+
+      span {
+        white-space: nowrap;
+        height: $sw-height;
+        line-height: $sw-height;
+        margin-left: $sw-width;
+        padding-left: 16px;
+      }
+    }
+
+    &:checked {
+      &+label:before {
+        width: $sw-width;
+        background: #0dcaf0;
+        transition: width .2s cubic-bezier(0, 0, 0, .1) !important;
+      }
+
+      &+label:after {
+        left: $sw-width - $sw-height + 1;
+      }
+
+      &+label {
+        box-shadow: inset 0 0 0px 25px #e4e4e4;
+        transition: box-shadow 2.5s cubic-bezier(0, 1.2, .94, .95)
+      }
+    }
+  }
+}

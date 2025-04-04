@@ -1,0 +1,377 @@
+@import "bootstrap/scss/bootstrap";
+@import "~bootstrap-icons/font/bootstrap-icons.css";
+
+.custom-switch {
+    width: 3em !important;
+    height: 1.5em !important;
+}
+
+
+@mixin flash-text-animation($flash-color: #ff0000,
+    $duration: 1s,
+    $timing: ease-in-out) {
+    animation: flashText $duration $timing;
+
+    @keyframes flashText {
+
+        0%,
+        100% {
+            color: inherit;
+        }
+
+        50% {
+            color: $flash-color;
+        }
+    }
+}
+
+.flash-text {
+    @include flash-text-animation();
+}
+
+.flash-text--warning {
+    @include flash-text-animation(#f23030, 3s);
+}
+
+.value-glow {
+    $glow-color: rgba(74, 144, 226, 0.7);
+
+    display: inline-block; // Для inline-элементов
+    animation: fadeGlow 2s ease-out;
+
+    @keyframes fadeGlow {
+        0% {
+            box-shadow: 0 0 10px 3px $glow-color;
+        }
+
+        100% {
+            box-shadow: 0 0 10px 0 transparent;
+        }
+    }
+}
+
+.percents {
+    transition: width 0.5s ease, background-color 0.5s ease;
+
+    &[style*="--progress"] {
+        background-color: hsla(calc(var(--progress) * 1.2), 100%, 35%, 0.6) !important;
+    }
+}
+
+.battery {
+    display: flex;
+    justify-content: space-between;
+    width: 100px;
+    height: 50px;
+    border: 2px solid #6C7A89;
+    border-radius: 4px;
+    padding: 2px;
+    position: relative;
+
+    &::after {
+        position: absolute;
+        top: 13px;
+        right: -12px;
+        content: "";
+        width: 8px;
+        height: 20px;
+        border: 2px solid #6C7A89;
+        border-left: 3px solid #fafbfc;
+        border-top-left-radius: 0px;
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+        border-bottom-left-radius: 0px;
+    }
+
+    .bar {
+        display: flex;
+        width: 19%;
+        height: 100%;
+        background: #ECF0F1;
+        border-radius: 1px;
+        opacity: 1;
+        transition: background-color 0.3s ease; 
+        &.active {
+            background: rgba(0, 128, 0, 0.5);
+        }
+
+        &.low {
+            background: rgba(128, 0, 0, 0.5)
+        }
+
+        &.medium {
+            background: rgba(255, 166, 0, 0.5)
+        }
+
+        &.high {
+            background: rgba(0, 128, 0, 0.5);
+        }
+    }
+
+    &.balancing {
+        .bar {
+            animation: blink 1s infinite;
+        }
+    }
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1; // Полностью видимый
+    }
+
+    50% {
+        opacity: 0.3; // Частично прозрачный (для плавности)
+    }
+}
+
+.blink {
+    animation: blink 1.5s ease-in-out infinite; // Плавная анимация мигания
+}
+
+.water-wave3 {
+    position: absolute;
+    top: 50%;
+    left: -35%;
+    background: #0f7ae4;
+    opacity: 0.3;
+    width: 200%;
+    height: 200%;
+    border-radius: 33%;
+    animation: inherit;
+    animation-duration: 11s;
+}
+
+.water-waves {
+    animation: water-waves linear infinite;
+}
+
+@keyframes water-waves {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+// .battery .bar:nth-child(1) {
+//     animation: fade-1 2.5s linear infinite running;
+// }
+
+// .battery .bar:nth-child(2) {
+//     animation: fade-2 2.5s linear infinite running;
+// }
+
+// .battery .bar:nth-child(3) {
+//     animation: fade-3 2.5s linear infinite running;
+// }
+
+// .battery .bar:nth-child(4) {
+//     animation: fade-4 2.5s linear infinite running;
+// }
+
+// .battery .bar:nth-child(5) {
+//     animation: fade-5 2.5s linear infinite running;
+// }
+
+@keyframes fade-1 {
+    0% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    40% {
+        opacity: 1;
+    }
+
+    60% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-2 {
+    0% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0;
+    }
+
+    40% {
+        opacity: 1;
+    }
+
+    60% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-3 {
+    0% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0;
+    }
+
+    40% {
+        opacity: 0;
+    }
+
+    60% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-4 {
+    0% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0;
+    }
+
+    40% {
+        opacity: 0;
+    }
+
+    60% {
+        opacity: 0;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-5 {
+    0% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0;
+    }
+
+    40% {
+        opacity: 0;
+    }
+
+    60% {
+        opacity: 0;
+    }
+
+    80% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-battery {
+    0% {
+        border-color: #444444;
+    }
+
+    20% {
+        border-color: #444444;
+    }
+
+    40% {
+        border-color: #444444;
+    }
+
+    60% {
+        border-color: #444444;
+    }
+
+    80% {
+        border-color: #444444;
+    }
+
+    90% {
+        border-color: #019872;
+    }
+
+    100% {
+        border-color: #444444;
+    }
+}
+
+@keyframes fade-after {
+    0% {
+        border-color: #444444;
+        border-left: 3px solid #fafbfc;
+    }
+
+    20% {
+        border-color: #444444;
+        border-left: 3px solid #fafbfc;
+    }
+
+    40% {
+        border-color: #444444;
+        border-left: 3px solid #fafbfc;
+    }
+
+    60% {
+        border-color: #444444;
+        border-left: 3px solid #fafbfc;
+    }
+
+    80% {
+        border-color: #444444;
+        border-left: 3px solid #fafbfc;
+    }
+
+    90% {
+        border-color: #019872;
+        border-left: 3px solid #fafbfc;
+    }
+
+    100% {
+        border-color: #444444;
+        border-left: 3px solid #fafbfc;
+    }
+}

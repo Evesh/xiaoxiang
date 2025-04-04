@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bootstrap w/ Webpack</title>
+</head>
+
+<body>
+
+  <div class="container-sm py-4 px-3 mx-auto" style="min-width: 769px; max-width: 991px;">
+
+    <nav class="navbar bg-body-tertiary">
+      <div class="container-fluid">
+
+        <a class="navbar-brand" href="#">
+          <img class="rounded" src="logo.webp" alt="Logo" width="32" height="32" class="d-inline-block align-text-top">
+          XiaoXiang BMS
+        </a>
+
+        <div class="controls">
+          <button type="button" class="btn btn-danger invisible" id="resetErrorBtn"><i class="bi bi-bug"></i> Reseterror</button>
+
+          <input type="checkbox" class="btn-check" id="autoUpdateBtn" autocomplete="off">
+          <label class="btn btn-outline-info" for="autoUpdateBtn"><i class="bi bi-arrow-clockwise"></i> Polling</label>
+
+          <button class="btn btn-info text-light" id="connectButton" style="width: 8em;"><i class="bi bi-bluetooth"></i> Connect</button>
+
+        </div>
+
+      </div>
+    </nav>
+
+    <div class="p-2 shadow text-end">
+      <button class="btn btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#testing-tools"
+        aria-expanded="false" aria-controls="testing-tools"><i class="bi bi-arrow-down-left-circle-fill"></i></button>
+      <div class="testing-tools collapse pt-2" id="testing-tools">
+
+        <div class="input-group mx-auto">
+          <span class="input-group-text">Команда</span>
+          <input type="text" class="form-control" placeholder="Recipient's username"
+            aria-label="0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77" aria-describedby="button-addon2" id="commandInput"
+            value="0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77">
+          <button class="btn btn-outline-secondary" type="button" id="button-addon2">Отправить</button>
+
+          <div class="input-group p-3">
+            <label for="batteryVoltageTestingRange" class="form-label">Напряжение аккумуляторов</label>
+            <input type="range" class="form-range" min="2.8" max="4.2" step="0.1" value="2.8"
+              id="batteryVoltageTestingRange">
+          </div>
+
+          <div class="input-group p-3">
+            <label for="percentsTestingRange" class="form-label">Заряд в процентах</label>
+            <input type="range" class="form-range" min="0" max="100" step="1" value="0" id="percentsTestingRange">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mx-auto m-3" style="min-height: 100px;">
+      <div class="progress-container position-relative mx-auto p-3 shadow rounded">
+        <div class="progress" role="progressbar" aria-label="Example 25px high" aria-valuenow="0" aria-valuemin="0"
+          aria-valuemax="100" style="height: 25px" id="connection-status">
+          <div class="progress-bar" style="width: 0%"><span class="fw-bold">Bold text.</span></div>
+        </div>
+      </div>
+
+      <div class="alert alert-danger alert-dismissible my-3 fade" role="alert" id="alert">
+        <span></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+
+    </div>
+
+
+    <div class="main-info shadow p-3 mb-3 rounded" id="main-info-container"></div>
+    <div class="battery-info shadow p-3 mb-3 rounded" id="battery-container"></div>
+
+  </div>
+</body>
+
+</html>
