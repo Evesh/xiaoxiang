@@ -117,7 +117,7 @@ export class BatteryDisplay {
                     bar.classList.forEach(className => {
                         if (className !== 'bar') { bar.classList.remove(className); }
                     })
-                    bar.classList.add(index < Math.floor(level * bars.length) ? level >= 0.5 ? 'high' : level >= 0.2 ? 'medium' : 'low' : 'low');
+                 bar.classList.add(index < Math.floor(level * bars.length) ? level >= 0.5 ? 'high' : level >= 0.2 ? 'medium' : 'low' : 'low');
                 });
 
                 document.getElementById(`battery-container-${i}`).style.boxShadow = 'none';
