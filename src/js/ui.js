@@ -117,7 +117,14 @@ export class BatteryDisplay {
                     bar.classList.forEach(className => {
                         if (className !== 'bar') { bar.classList.remove(className); }
                     })
-                 bar.classList.add(index < Math.floor(level * bars.length) ? level >= 0.5 ? 'high' : level >= 0.2 ? 'medium' : 'low' : 'low');
+
+                    // bar.classList.add(index < Math.floor(level * bars.length) ? level >= 0.5 ? 'high' : level >= 0.2 ? 'medium' : 'low' : 'empty');
+
+                    if(index < Math.floor(level * bars.length)) {
+                        bar.classList.add(level >= 0.7 ? 'high' : level >= 0.3 ? 'medium' : 'low');
+                    } else {
+                        bar.classList.add('empty');
+                    }
                 });
 
                 document.getElementById(`battery-container-${i}`).style.boxShadow = 'none';
@@ -387,35 +394,35 @@ export class MainInfoDisplay {
 
         <div class="row row-cols-3 justify-content-around py-3">
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="voltage_" style="width: 200px; height: 100px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="voltage_" style="width: 180px; height: 90px;">
                     <div class="title text-muted">Voltage</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
-                        <span id="voltage" class="fw-medium text-secondary">0.00 V</span>
+                        <span id="voltage" class="fw-medium">0.00 V</span>
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="current_" style="width: 200px; height: 100px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="current_" style="width: 180px; height: 90px;">
                     <div class="title text-muted">Current</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
-                        <span id="current" class="fw-medium text-secondary">0.00 A</span>
+                        <span id="current" class="fw-medium">0.00 A</span>
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="power_" style="width: 200px; height: 100px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="power_" style="width: 180px; height: 90px;">
                     <div class="title text-muted">Power</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
-                        <span id="power" class="fw-medium text-secondary">0.00 W</span>
+                        <span id="power" class="fw-medium">0.00 W</span>
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="capacity_" style="width: 200px; height: 100px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="capacity_" style="width: 180px; height: 90px;">
                     <div class="title text-muted">Capacity</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
-                        <span id="capacity" class="fw-medium text-secondary">0.00 Ah</span>
+                        <span id="capacity" class="fw-medium">0.00 Ah</span>
                     </div>
             </div>
 
@@ -469,33 +476,6 @@ export class MainInfoDisplay {
 
         <div class="row row-cols-3 mx-auto p-3">
 
-            <div class="col border-start" id="func_config">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="switch">
-                    <label class="form-check-label" for="func_config_switch">switch</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="scrl">
-                    <label class="form-check-label" for="func_config_scrl">scrl</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="balance_en">
-                    <label class="form-check-label" for="func_config_balance_en">balance_en</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="funcbalance_en">
-                    <label class="form-check-label" for="func_config_chg_balance_en">chg_balance_en</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="led_en">
-                    <label class="form-check-label" for="func_config_led_en">led_en</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="led_num">
-                    <label class="form-check-label" for="func_config_led_num">led_num</label>
-                </div>
-            </div>
-
             <div class="col border-start" id="ntc_config">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" name="ntc1">
@@ -531,14 +511,42 @@ export class MainInfoDisplay {
                 </div>
 
             </div>
-        </div>        
 
-        <div class="protection border rounded-5 w-50 ms-auto position-relative" id="protection">
-            <div class="value d-flex align-items-center p-3" style="height: 50px; width: 300px;">
-            <i class="bi bi-check-lg pe-3" style="font-size: 24px;"></i>
-            <span>No active protections</span>
+            <div class="col border-start" id="func_config">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="switch">
+                    <label class="form-check-label" for="func_config_switch">switch</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="scrl">
+                    <label class="form-check-label" for="func_config_scrl">scrl</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="balance_en">
+                    <label class="form-check-label" for="func_config_balance_en">balance_en</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="funcbalance_en">
+                    <label class="form-check-label" for="func_config_chg_balance_en">chg_balance_en</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="led_en">
+                    <label class="form-check-label" for="func_config_led_en">led_en</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="led_num">
+                    <label class="form-check-label" for="func_config_led_num">led_num</label>
+                </div>
             </div>
-        </div>
+        
+            <div class="col border-start position-relative" id="protection">
+                <div class="value d-flex align-items-center border rounded-5 ms-auto p-3">
+                <i class="bi bi-check-lg pe-3" style="font-size: 24px;"></i>
+                <span>No active protections</span>
+                </div>
+            </div>
+
+        </div>        
         `;
 
 
@@ -592,8 +600,9 @@ export class MainInfoDisplay {
             const spanValue = parseFloat(span.textContent);
 
             if (spanValue !== newValue) {
-                this.#applyFlash(span);
+                console.log('flash');
                 span.textContent = `${parseFloat(newValue.toFixed(3))} ${query}`;
+                this.#applyFlash(span);
 
                 if (newValue > spanValue) {
                     icon.classList.add('bi-caret-up-fill');

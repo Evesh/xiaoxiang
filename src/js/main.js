@@ -85,7 +85,6 @@ const output = connectionStatus.querySelector('span');
 const alert = document.getElementById('alert');
 const batteryVoltageTestingRange = document.getElementById('batteryVoltageTestingRange');
 const percentsTestingRange = document.getElementById('percentsTestingRange');
-const autoUpdateBtn = document.getElementById('autoUpdateBtn');
 const resetErrorBtn = document.getElementById('resetErrorBtn');
 
 batteryVoltageTestingRange.addEventListener('input', () => {
@@ -280,19 +279,18 @@ connectButton.addEventListener('click', async () => {
     });
 
 
-    autoUpdateBtn.addEventListener('click', async (e) => {
+    // setInterval(() => {
+    //   requestBmsData2(characteristic_tx, characteristic_rx, isMainRequest ? BMS_REQUEST_MAIN : BMS_REQUEST_CELLS);
+    //   isMainRequest = !isMainRequest;
+    // }, 2000);
 
-      if (autoUpdateBtn.textContent === 'Stop') {
-        clearInterval(requestInterval);
-        autoUpdateBtn.textContent = 'Start';
-      } else {
-        requestInterval = setInterval(async () => {
-          requestBmsData(characteristic_tx, isMainRequest);
-          isMainRequest = !isMainRequest;
-        }, 2000);
-        autoUpdateBtn.textContent = 'Stop';
-      }
-    });
+
+    requestInterval = setInterval(async () => {
+      requestBmsData(characteristic_tx, isMainRequest);
+      isMainRequest = !isMainRequest;
+    }, 2000);
+
+
 
 
   } catch (error) {
@@ -320,6 +318,28 @@ async function requestBmsData(characteristic_tx, isMainRequest) {
     console.error('Error writing data:', error);
     output.textContent = `Error writing data: ${error.message}`;
   }
+}
+
+async function requestBmsData2(characteristic_tx, characteristic_rx, command) {
+  if (isEEPROM) throw new Error('(!) Вы находитесь в режиме EEPROM');
+  if (!command instanceof Uint8Array) throw new Error('(!) Команда должна быть непустым массивом');
+  if (command[command.length - 1] !== 0x77) throw new Error('(!) Команда должна заканчиваться на 0x77');
+
+  return new Promise((resolve, reject) => {
+    characteristic_tx.writeValue(command);
+
+    const timeoutId = setTimeout(() => {
+      characteristic_rx.removeEventListener('characteristicvaluechanged');
+      reject(new Error('Таймаут ожидания ответа'));
+    }, 500);
+
+    characteristic_rx.addEventListener('characteristicvaluechanged', (event) => {
+      clearTimeout(timeoutId);
+      const data = new Uint8Array(event.target.value.buffer);
+      notifyCallback(data);
+      resolve(data);
+    });
+  });
 }
 
 
