@@ -111,18 +111,13 @@ export class BatteryDisplay {
 
             if (!isNaN(voltage)) {
                 batteryElement.textContent = `${voltage.toFixed(3)}V`;
-                const level = Math.max(0, Math.min((voltage - this.batteryMinVoltage) / (this.batteryMaxVoltage - this.batteryMinVoltage),1 ));
+                const level = Math.max(0, Math.min((voltage - this.batteryMinVoltage) / (this.batteryMaxVoltage - this.batteryMinVoltage), 1));
 
                 bars.forEach((bar, index) => {
-                    // bar.style.backgroundColor = index < Math.floor(level * bars.length) ? level >= 0.5 ? '#008000' : level >= 0.2 ? '#ffa500' : '#990000' : '#c0c0c0';
-
                     bar.classList.forEach(className => {
-                        if(className !== 'bar') {
-                            bar.classList.remove(className);
-                        }
+                        if (className !== 'bar') { bar.classList.remove(className); }
                     })
-
-                    bar.classList.add(index < Math.floor(level * bars.length) ? level >= 0.5 ? 'high' : level >= 0.2 ? 'midium' : 'low' : '');
+                    bar.classList.add(index < Math.floor(level * bars.length) ? level >= 0.5 ? 'high' : level >= 0.2 ? 'medium' : 'low' : 'low');
                 });
 
                 document.getElementById(`battery-container-${i}`).style.boxShadow = 'none';
@@ -390,7 +385,7 @@ export class MainInfoDisplay {
         controlsContainer.classList.add('controls-container', 'pt-3');
         controlsContainer.innerHTML = `
 
-        <div class="row row-cols-3 justify-content-around pb-5">
+        <div class="row row-cols-3 justify-content-around py-3">
 
             <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="voltage_" style="width: 200px; height: 100px;">
                     <div class="title text-muted">Voltage</div>
@@ -429,7 +424,7 @@ export class MainInfoDisplay {
         <div class="row row-cols-4 p-3">
             <div class="d-flex align-items-center justify-content-center">
                 <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted" id="temperature-sensor-0">
-                    <i class="bi bi-thermometer-half position-relative" style="font-size: 32px;">
+                    <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
                     <span class="temp-sensor fs-4">0 °C</span>
@@ -437,19 +432,19 @@ export class MainInfoDisplay {
             </div>
             <div class="d-flex align-items-center justify-content-center">
                 <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted" id="temperature-sensor-1">
-                    <i class="bi bi-thermometer-half" style="font-size: 32px;"></i>
+                    <i class="bi bi-thermometer-half position-relative fs-3"></i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
                 <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted" id="temperature-sensor-2">
-                    <i class="bi bi-thermometer-half" style="font-size: 32px;"></i>
+                    <i class="bi bi-thermometer-half position-relative fs-3"></i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
                 <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted" id="temperature-sensor-3">
-                    <i class="bi bi-thermometer-half" style="font-size: 32px;"></i>
+                    <i class="bi bi-thermometer-half position-relative fs-3"></i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
             </div>
@@ -538,7 +533,7 @@ export class MainInfoDisplay {
             </div>
         </div>        
 
-        <div class="protection" id="protection">
+        <div class="protection border rounded-5 w-50 ms-auto position-relative" id="protection">
             <div class="value d-flex align-items-center p-3" style="height: 50px; width: 300px;">
             <i class="bi bi-check-lg pe-3" style="font-size: 24px;"></i>
             <span>No active protections</span>
@@ -577,7 +572,7 @@ export class MainInfoDisplay {
         const current = parseFloat(data.current.toFixed(2));
         const power = parseFloat(data.power.toFixed(2));
         const capacity = parseFloat(data.residualCapacity.toFixed(2));
-        
+
 
         const switchChargeMosfet = this.controls.querySelector('#switchChargeMosfet');
         const switchDisChargeMosfet = this.controls.querySelector('#switchDisChargeMosfet');
@@ -619,10 +614,10 @@ export class MainInfoDisplay {
         };
 
 
-        updateValueWithFlash(document.getElementById('voltage_', 'V'), voltage);
-        updateValueWithFlash(document.getElementById('current_', 'A'), current);
-        updateValueWithFlash(document.getElementById('power_', 'W'), power);
-        updateValueWithFlash(document.getElementById('capacity_', 'Ah'), capacity);
+        updateValueWithFlash(document.getElementById('voltage_'), voltage, 'V');
+        updateValueWithFlash(document.getElementById('current_'), current, 'A');
+        updateValueWithFlash(document.getElementById('power_'), power, 'W');
+        updateValueWithFlash(document.getElementById('capacity_'), capacity, 'Ah');
 
         // const voltage = this.controls.querySelector('#voltage');
         // voltage.textContent = `${data.totalVoltage.toFixed(2)} V`;
