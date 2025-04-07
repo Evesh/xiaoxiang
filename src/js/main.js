@@ -1,22 +1,11 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
 import '../scss/styles.scss';
 import '../scss/toggle.scss';
-import * as bootstrap from 'bootstrap';
+
 import { BatteryDisplay, MainInfoDisplay } from './ui';
 import { BMS } from './bms';
+import { saveBLEData } from './database';
+import ApexCharts from 'apexcharts'
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD_4xijCwVEVKzoVGgPWb7LS6M1p5nQjCM",
-  authDomain: "arduino-39ce8.firebaseapp.com",
-  databaseURL: "https://arduino-39ce8-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "arduino-39ce8",
-  storageBucket: "arduino-39ce8.firebasestorage.app",
-  messagingSenderId: "48362386960",
-  appId: "1:48362386960:web:55dc9f8ddba87f2eb93c95"
-};
-
-const app = initializeApp(firebaseConfig);
 
 const batteryDisplay = new BatteryDisplay(14, 'battery-container');
 const mainInfoDisplay = new MainInfoDisplay('main-info-container', uiCallback);
@@ -35,10 +24,7 @@ const d2 = new Uint8Array([0xdd, 0xa5, 0x2e, 0x00, 0xff, 0xd2, 0x77]);
 // 0xdd 0x2e 0x00 0x02 0x00 0x03 0xff 0xfb 0x77
 
 
-
-document.addEventListener('myCustomEvent', (e) => {
-  console.log('Получены данные:', e.detail);
-});
+document.addEventListener('myCustomEvent', (e) => { console.log('Получены данные:', e.detail); });
 
 
 const bms_mosfet_write = [
@@ -72,11 +58,13 @@ let device = null; // Переменная для хранения подклю�
 let requestInterval = null;
 let isMainRequest = true;
 let isEEPROM = false;
+let isConnected = false;
 let isDataReceived = false;
+let isFirstPacket = false;
+let isEEPROMReceived = false;
 let mainData = false;
 let cellsData = false;
 let eepromData = false;
-
 
 const connectButton = document.getElementById('connectButton');
 const connectionStatus = document.getElementById('connection-status');
@@ -86,6 +74,7 @@ const alert = document.getElementById('alert');
 const batteryVoltageTestingRange = document.getElementById('batteryVoltageTestingRange');
 const percentsTestingRange = document.getElementById('percentsTestingRange');
 const resetErrorBtn = document.getElementById('resetErrorBtn');
+
 
 batteryVoltageTestingRange.addEventListener('input', () => {
   const voltage = batteryVoltageTestingRange.value;
@@ -195,16 +184,32 @@ connectButton.addEventListener('click', async () => {
     if (device && device.gatt.connected) {
       output.textContent = `Setup complete.`;
       progressBar.style.width = '100%';
+
+
+      console.log('Device connected');
+      isConnected = true;
       connectButton.textContent = 'Disconnect';
+
+      requestInterval = setInterval(async () => {
+        requestBmsData(characteristic_tx, isMainRequest);
+        isMainRequest = !isMainRequest;
+      }, 1500);
     }
 
+    device.addEventListener('gattserverdisconnected', onDisconnect);
+    device.addEventListener('gattserverconnect', function () {
+      console.log('Device reconnected');
+    });
 
-    device.addEventListener('gattserverdisconnected', () => {
-      console.log('Device disconnected!!!.');
+    function onDisconnect() {
+      console.log('Device disconnected');
+      isConnected = false;
       connectButton.textContent = 'Connect';
       mainInfoDisplay.reset();
       clearInterval(requestInterval);
-    });
+    }
+
+
 
     mainInfoDisplay.setCallback(function (data) {
 
@@ -279,18 +284,6 @@ connectButton.addEventListener('click', async () => {
     });
 
 
-    // setInterval(() => {
-    //   requestBmsData2(characteristic_tx, characteristic_rx, isMainRequest ? BMS_REQUEST_MAIN : BMS_REQUEST_CELLS);
-    //   isMainRequest = !isMainRequest;
-    // }, 2000);
-
-
-    requestInterval = setInterval(async () => {
-      requestBmsData(characteristic_tx, isMainRequest);
-      isMainRequest = !isMainRequest;
-    }, 2000);
-
-
 
 
   } catch (error) {
@@ -341,7 +334,6 @@ async function requestBmsData2(characteristic_tx, characteristic_rx, command) {
     });
   });
 }
-
 
 function notifyCallback(data) {
   // console.log([...new Uint8Array(data)].map(b => b.toString(16)).join(' 0x'));
@@ -453,7 +445,6 @@ function bmsDataReceive(data) {
     return;
   }
 
-
   if (data[1] === 0x03) {
     BMSMain.totalVoltage = ((data[4] << 8) | data[5]) * 0.01;
     const rawValueСurrent = (data[6] << 8) | data[7];
@@ -474,10 +465,9 @@ function bmsDataReceive(data) {
     const protection = getProtectionStatusText(BMSMain.protectionStatus);
     console.log(`Protection status: ${protection}`);
 
-    // Обработка температурных датчиков
     for (let i = 0; i < BMSMain.numberOfTemperatureSensors; i++) {
       const tempValue = (data[27 + i * 2] << 8) | data[28 + i * 2];
-      BMSMain.temperature[i] = ((tempValue - 2731) * 0.1).toFixed(1);
+      BMSMain.temperature[i] = parseFloat(((tempValue - 2731) * 0.1).toFixed(1));
     }
 
     // Определение состояния BMS
@@ -492,8 +482,16 @@ function bmsDataReceive(data) {
       BMSMain.power = BMSMain.current * BMSMain.totalVoltage;
     }
     mainInfoDisplay.update(BMSMain)
-    const customEvent = new CustomEvent('myCustomEvent', { detail: BMSMain });
-    document.dispatchEvent(customEvent);
+
+    saveBLEData({
+      totalVoltage: BMSMain.totalVoltage,
+      current: BMSMain.current,
+      power: BMSMain.power,
+      residualCapacity: BMSMain.residualCapacity,
+      temperature: BMSMain.temperature,
+    });
+    // const customEvent = new CustomEvent('myCustomEvent', { detail: BMSMain });
+    // document.dispatchEvent(customEvent);
   }
 
   if (data[1] === 0x04) {

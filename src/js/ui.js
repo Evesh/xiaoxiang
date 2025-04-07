@@ -1,10 +1,5 @@
-
-
-// for (byte i = 0; i < BMSMain->numberOfCells; i++) {
-//     if (bitRead(BMSMain->balanceStatus, i)) Serial.printf("Cell %d: %s\n", i + 1, "Balancing");
-// }
-
-
+import * as bootstrap from 'bootstrap';
+import ApexCharts from 'apexcharts'
 
 export class BatteryDisplay {
     constructor(numberOfCells, containerId) {
@@ -84,7 +79,7 @@ export class BatteryDisplay {
               <span class="bar"></span>
               <span class="bar"></span>
             </div>
-            <i class="bi bi-lightning-charge ms-3 blink invisible" style="font-size: 20px; color: rgb(0,128,0);" id="balancing-${i}"></i>
+            <i class="bi bi-lightning-charge ms-3 blink invisible" style="font-size: 16px; color: rgb(0,128,0);" id="balancing-${i}"></i>
           </div>
         `;
             batteryRow.insertAdjacentHTML('beforeend', batteryHtml);
@@ -120,7 +115,7 @@ export class BatteryDisplay {
 
                     // bar.classList.add(index < Math.floor(level * bars.length) ? level >= 0.5 ? 'high' : level >= 0.2 ? 'medium' : 'low' : 'empty');
 
-                    if(index < Math.floor(level * bars.length)) {
+                    if (index < Math.floor(level * bars.length)) {
                         bar.classList.add(level >= 0.7 ? 'high' : level >= 0.3 ? 'medium' : 'low');
                     } else {
                         bar.classList.add('empty');
@@ -247,19 +242,6 @@ export class BatteryDisplay {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 export class MainInfoDisplay {
     constructor(containerId) {
         if (!containerId) { throw new Error('containerId is not defined'); }
@@ -267,6 +249,11 @@ export class MainInfoDisplay {
         this.container = document.getElementById(containerId);
         this.callback = null;
         this.init();
+
+        this.modal = new bootstrap.Modal('#graphics', { keyboard: false })
+        this.loadedData = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
+        console.log('Загруженные данные:', this.loadedData);
+
     }
 
     init() {
@@ -394,7 +381,7 @@ export class MainInfoDisplay {
 
         <div class="row row-cols-3 justify-content-around py-3">
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="voltage_" style="width: 180px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded clickable" id="voltage_" name="totalVoltage" style="width: 160px; height: 90px;">
                     <div class="title text-muted">Voltage</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
@@ -402,7 +389,7 @@ export class MainInfoDisplay {
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="current_" style="width: 180px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded clickable" id="current_" name="current" style="width: 160px; height: 90px;">
                     <div class="title text-muted">Current</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
@@ -410,7 +397,7 @@ export class MainInfoDisplay {
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="power_" style="width: 180px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded clickable" id="power_" name="power" style="width: 160px; height: 90px;">
                     <div class="title text-muted">Power</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
@@ -418,7 +405,7 @@ export class MainInfoDisplay {
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded" id="capacity_" style="width: 180px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded clickable" id="capacity_" name="residualCapacity" style="width: 160px; height: 90px;">
                     <div class="title text-muted">Capacity</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
@@ -567,6 +554,36 @@ export class MainInfoDisplay {
                 eepromMode: controlsContainer.querySelector('#switchEepromMode').checked
             });
         });
+
+        if (document.querySelector('#graphics')) {
+            controlsContainer.addEventListener('click', (event) => {
+                if (event.target.classList.contains('clickable')) {
+                    console.log(event.target);
+                    console.log(event.target.id);
+                    console.log(event.target.getAttribute('name'));
+
+                    const paramName = event.target.getAttribute('name');
+
+                    var chart = new ApexCharts(document.querySelector("#graphics").querySelector(".modal-body"), {
+                        chart: {
+                            type: 'line'
+                        },
+                        series: [{
+                            name: paramName.toUpperCase(),
+                            data: this.loadedData.map(item => item.bleData[paramName].toFixed(2))
+                        }],
+                        xaxis: {
+                            categories: this.loadedData.map(item => new Date(item.timestamp).toLocaleTimeString())
+                        }
+                    });
+                    chart.render();
+
+                    this.modal.show();
+
+
+                }
+            })
+        }
 
         return controlsContainer;
     }

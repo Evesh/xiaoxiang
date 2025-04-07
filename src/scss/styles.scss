@@ -1,11 +1,19 @@
 @import "bootstrap/scss/bootstrap";
 @import "~bootstrap-icons/font/bootstrap-icons.css";
 
-.custom-switch {
-    width: 3em !important;
-    height: 1.5em !important;
+
+.clickable {
+    cursor: pointer;
+    transition: transform .2s;
+
+    &:hover {
+        transform: scale(1.05);
+    }
 }
 
+
+
+$form-switch-checked-color: #d61717 !important;
 
 @mixin flash-text-animation($flash-color: #ff0000,
     $duration: 1s,

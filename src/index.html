@@ -9,6 +9,24 @@
 
 <body>
 
+  <div class="modal fade" id="graphics" tabindex="-1" aria-labelledby="graphics"
+    style="display: none;" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-4" id="graphics">Full screen modal</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
   <div class="container-sm py-4 px-3 mx-auto" style="min-width: 769px; max-width: 991px;">
 
     <nav class="navbar bg-body-tertiary">
@@ -20,8 +38,10 @@
         </a>
 
         <div class="controls">
-          <button type="button" class="btn btn-danger invisible" id="resetErrorBtn"><i class="bi bi-bug"></i> Reseterror</button>
-          <button class="btn btn-info text-light" id="connectButton" style="width: 8em;"><i class="bi bi-bluetooth"></i> Connect</button>
+          <button type="button" class="btn btn-danger invisible" id="resetErrorBtn"><i
+              class="bi bi-bug"></i>Reseterror</button>
+          <button class="btn btn-info text-light" id="connectButton" style="width: 8em;"><i class="bi bi-bluetooth"></i>
+            Connect</button>
         </div>
 
       </div>
@@ -35,8 +55,8 @@
         <div class="input-group mx-auto">
           <span class="input-group-text">Команда</span>
           <input type="text" class="form-control" placeholder="Recipient's username"
-            aria-label="0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77" aria-describedby="button-addon2" id="commandInput"
-            value="0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77">
+            aria-label="0xdd, 0xa5, 0x2e, 0x00, 0xff, 0xd2, 0x77" aria-describedby="button-addon2" id="commandInput"
+            value="0xdd, 0xa5, 0x2e, 0x00, 0xff, 0xd2, 0x77">
           <button class="btn btn-outline-secondary" type="button" id="button-addon2">Отправить</button>
 
           <div class="input-group p-3">
