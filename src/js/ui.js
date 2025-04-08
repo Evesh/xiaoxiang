@@ -248,9 +248,20 @@ export class MainInfoDisplay {
         this.containerId = containerId;
         this.container = document.getElementById(containerId);
         this.callback = null;
+        this.chart = null;
         this.init();
 
-        this.modal = new bootstrap.Modal('#graphics', { keyboard: false })
+        this.modalElement = document.getElementById('graphics');
+
+        if (this.modalElement) {
+            this.modal = new bootstrap.Modal(this.modalElement, { keyboard: false })
+            this.modalElement.addEventListener('hidden.bs.modal', event => {
+                if (this.chart) {
+                    this.chart.destroy();
+                }
+            })
+        }
+
         this.loadedData = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
         console.log('Загруженные данные:', this.loadedData);
 
@@ -417,7 +428,7 @@ export class MainInfoDisplay {
 
         <div class="row row-cols-4 p-3">
             <div class="d-flex align-items-center justify-content-center">
-                <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted" id="temperature-sensor-0">
+                <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted clickable" id="temperature-sensor-0" name="temperature-sensor-0">
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
@@ -425,19 +436,19 @@ export class MainInfoDisplay {
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
-                <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted" id="temperature-sensor-1">
+                <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted clickable" id="temperature-sensor-1" name="temperature-sensor-1">
                     <i class="bi bi-thermometer-half position-relative fs-3"></i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
-                <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted" id="temperature-sensor-2">
+                <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted clickable" id="temperature-sensor-2" name="temperature-sensor-2">
                     <i class="bi bi-thermometer-half position-relative fs-3"></i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
-                <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted" id="temperature-sensor-3">
+                <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted clickable" id="temperature-sensor-3" name="temperature-sensor-3">
                     <i class="bi bi-thermometer-half position-relative fs-3"></i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
@@ -557,30 +568,33 @@ export class MainInfoDisplay {
 
         if (document.querySelector('#graphics')) {
             controlsContainer.addEventListener('click', (event) => {
-                if (event.target.classList.contains('clickable')) {
-                    console.log(event.target);
-                    console.log(event.target.id);
-                    console.log(event.target.getAttribute('name'));
+                if (event.target.classList.contains('clickable') || event.target.parentElement.classList.contains('clickable')) {
+
+                    if (!event.target.hasAttribute('name')) {
+                        console.log('No name attribute', event.target);
+                        return;
+                    }
 
                     const paramName = event.target.getAttribute('name');
-
-                    var chart = new ApexCharts(document.querySelector("#graphics").querySelector(".modal-body"), {
+                    this.chart = new ApexCharts(document.querySelector("#graphics").querySelector(".modal-body"), {
                         chart: {
-                            type: 'line'
+                            type: 'line',
+                            stroke: {
+                                curve: 'smooth'
+                            },
+                            markers: {
+                                size: 0
+                            }
                         },
                         series: [{
                             name: paramName.toUpperCase(),
-                            data: this.loadedData.map(item => item.bleData[paramName].toFixed(2))
+                            data: paramName.includes("temperature-sensor-") ? this.loadedData.map(item => item.bleData.temperature[parseInt(paramName.substring(paramName.length - 1))]) : this.loadedData.map(item => item.bleData[paramName].toFixed(2))
                         }],
                         xaxis: {
                             categories: this.loadedData.map(item => new Date(item.timestamp).toLocaleTimeString())
                         }
                     });
-                    chart.render();
-
-                    this.modal.show();
-
-
+                    this.chart.render().then(() => this.modal.show());
                 }
             })
         }

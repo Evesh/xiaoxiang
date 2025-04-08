@@ -1,6 +1,18 @@
 @import "bootstrap/scss/bootstrap";
 @import "~bootstrap-icons/font/bootstrap-icons.css";
 
+@font-face {
+    font-family: "digital-7";
+    font-style: normal;
+    font-weight: 400;
+    src: url("../fonts/digital-7/digital-7.ttf") format("truetype");
+}
+
+
+.speed{
+    font-family: "digital-7";
+    font-size: 48px;
+}
 
 .clickable {
     cursor: pointer;
@@ -10,10 +22,6 @@
         transform: scale(1.05);
     }
 }
-
-
-
-$form-switch-checked-color: #d61717 !important;
 
 @mixin flash-text-animation($flash-color: #ff0000,
     $duration: 1s,
@@ -98,7 +106,8 @@ $form-switch-checked-color: #d61717 !important;
         background: #ECF0F1;
         border-radius: 1px;
         opacity: 1;
-        transition: background-color 0.3s ease; 
+        transition: background-color 0.3s ease;
+
         &.active {
             background: rgba(0, 128, 0, 0.5);
         }

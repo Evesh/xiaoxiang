@@ -11,7 +11,7 @@ let bleDataPrev = {
 
 export function saveBLEData(bleData) {
 
-    console.log(typeof bleData.totalVoltage, typeof bleDataPrev.totalVoltage);
+    const currentTime = new Date();
 
     if (bleData.totalVoltage === bleDataPrev.totalVoltage &&
         bleData.current === bleDataPrev.current &&
@@ -23,10 +23,8 @@ export function saveBLEData(bleData) {
 
     bleDataPrev = bleData;
 
-    const currentTime = new Date().toISOString(); // или .toLocaleString() для удобного чтения
-
     const dataToSave = {
-        timestamp: currentTime,
+        timestamp: currentTime.toISOString(),
         bleData: bleData
     };
 

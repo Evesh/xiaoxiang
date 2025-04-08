@@ -9,12 +9,12 @@
 
 <body>
 
-  <div class="modal fade" id="graphics" tabindex="-1" aria-labelledby="graphics"
-    style="display: none;" aria-hidden="true">
+  <div class="modal fade" id="graphics" tabindex="-1" aria-labelledby="graphics" style="display: none;"
+    aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
       <div class="modal-content">
         <div class="modal-header">
-          <h1 class="modal-title fs-4" id="graphics">Full screen modal</h1>
+          <h1 class="modal-title fs-4"></h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -26,68 +26,78 @@
     </div>
   </div>
 
+  <div class="modal fade" id="settings" tabindex="-1" aria-labelledby="settings" style="display: none;"
+    aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-4">Settings</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+
+          <div class="input-group mx-auto">
+            <span class="input-group-text">Команда</span>
+            <input type="text" class="form-control" placeholder="Recipient's username"
+              aria-label="0xdd, 0xa5, 0x2e, 0x00, 0xff, 0xd2, 0x77" aria-describedby="button-addon2" id="commandInput"
+              value="0xdd, 0xa5, 0x2e, 0x00, 0xff, 0xd2, 0x77">
+            <button class="btn btn-outline-secondary" type="button" id="button-addon2">Отправить</button>
+
+            <div class="input-group p-3">
+              <label for="batteryVoltageTestingRange" class="form-label">Напряжение аккумуляторов</label>
+              <input type="range" class="form-range" min="2.8" max="4.2" step="0.1" value="2.8"
+                id="batteryVoltageTestingRange">
+            </div>
+
+            <div class="input-group p-3">
+              <label for="percentsTestingRange" class="form-label">Заряд в процентах</label>
+              <input type="range" class="form-range" min="0" max="100" step="1" value="0" id="percentsTestingRange">
+            </div>
+          </div>
+
+          <div class="statistic">
+            <div class="input-group">
+              <span>Download statistic</span>
+              <button type="button" class="btn btn-info text-light" id="downloadButton"><i class="bi bi-download"></i></button>
+            </div>
+          </div>
+
+
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="container-sm py-4 px-3 mx-auto" style="min-width: 769px; max-width: 991px;">
 
     <nav class="navbar bg-body-tertiary">
       <div class="container-fluid">
 
-        <a class="navbar-brand" href="#">
-          <img class="rounded" src="logo.webp" alt="Logo" width="32" height="32" class="d-inline-block align-text-top">
-          XiaoXiang BMS
-        </a>
+        <a class="navbar-brand" href="#"><img class="rounded" src="logo.webp" alt="Logo" width="32" height="32"
+            class="d-inline-block align-text-top"> XiaoXiang BMS</a>
 
         <div class="controls">
+          <span id="output"></span>
           <button type="button" class="btn btn-danger invisible" id="resetErrorBtn"><i
               class="bi bi-bug"></i>Reseterror</button>
-          <button class="btn btn-info text-light" id="connectButton" style="width: 8em;"><i class="bi bi-bluetooth"></i>
-            Connect</button>
+          <button class="btn btn-info text-light" data-bs-toggle="modal" data-bs-target="#settings"><i
+              class="bi bi-gear-fill"></i></button>
+          <button class="btn btn-info text-light" style="width: 8em;" id="connectButton"><i
+              class="bi bi-bluetooth"></i>Connect</button>
         </div>
-
       </div>
     </nav>
 
-    <div class="p-2 shadow text-end">
-      <button class="btn btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#testing-tools"
-        aria-expanded="false" aria-controls="testing-tools"><i class="bi bi-arrow-down-left-circle-fill"></i></button>
-      <div class="testing-tools collapse pt-2" id="testing-tools">
-
-        <div class="input-group mx-auto">
-          <span class="input-group-text">Команда</span>
-          <input type="text" class="form-control" placeholder="Recipient's username"
-            aria-label="0xdd, 0xa5, 0x2e, 0x00, 0xff, 0xd2, 0x77" aria-describedby="button-addon2" id="commandInput"
-            value="0xdd, 0xa5, 0x2e, 0x00, 0xff, 0xd2, 0x77">
-          <button class="btn btn-outline-secondary" type="button" id="button-addon2">Отправить</button>
-
-          <div class="input-group p-3">
-            <label for="batteryVoltageTestingRange" class="form-label">Напряжение аккумуляторов</label>
-            <input type="range" class="form-range" min="2.8" max="4.2" step="0.1" value="2.8"
-              id="batteryVoltageTestingRange">
-          </div>
-
-          <div class="input-group p-3">
-            <label for="percentsTestingRange" class="form-label">Заряд в процентах</label>
-            <input type="range" class="form-range" min="0" max="100" step="1" value="0" id="percentsTestingRange">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="mx-auto m-3" style="min-height: 100px;">
-      <div class="progress-container position-relative mx-auto p-3 shadow rounded">
-        <div class="progress" role="progressbar" aria-label="Example 25px high" aria-valuenow="0" aria-valuemin="0"
-          aria-valuemax="100" style="height: 25px" id="connection-status">
-          <div class="progress-bar" style="width: 0%"><span class="fw-bold">Bold text.</span></div>
-        </div>
-      </div>
-
+    <div class="mx-auto m-3">
       <div class="alert alert-danger alert-dismissible my-3 fade" role="alert" id="alert">
         <span></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
-
     </div>
-
 
     <div class="main-info shadow p-3 mb-3 rounded" id="main-info-container"></div>
     <div class="battery-info shadow p-3 mb-3 rounded" id="battery-container"></div>

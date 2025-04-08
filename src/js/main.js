@@ -1,10 +1,7 @@
 import '../scss/styles.scss';
 import '../scss/toggle.scss';
-
 import { BatteryDisplay, MainInfoDisplay } from './ui';
-import { BMS } from './bms';
 import { saveBLEData } from './database';
-import ApexCharts from 'apexcharts'
 
 
 const batteryDisplay = new BatteryDisplay(14, 'battery-container');
@@ -67,13 +64,25 @@ let cellsData = false;
 let eepromData = false;
 
 const connectButton = document.getElementById('connectButton');
-const connectionStatus = document.getElementById('connection-status');
-const progressBar = connectionStatus.querySelector('.progress-bar');
-const output = connectionStatus.querySelector('span');
+const output = document.getElementById('output');
 const alert = document.getElementById('alert');
 const batteryVoltageTestingRange = document.getElementById('batteryVoltageTestingRange');
 const percentsTestingRange = document.getElementById('percentsTestingRange');
 const resetErrorBtn = document.getElementById('resetErrorBtn');
+const downloadButton = document.getElementById('downloadButton');
+
+downloadButton.addEventListener('click', () => {
+  const data = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
+  if (!data.length) return console.log('Нет данных для скачивания');
+  const textData = data.map(item => JSON.stringify(item)).join('\n');
+  const blob = new Blob([textData], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'bms_data.txt';
+  link.click();
+  URL.revokeObjectURL(url);
+})
 
 
 batteryVoltageTestingRange.addEventListener('input', () => {
@@ -111,13 +120,17 @@ const disconnectDevice = async () => {
     await device.gatt.disconnect();
     console.log('Device disconnected:', device.name);
     output.textContent = 'Device disconnected.';
-    progressBar.style.width = '0%';
     device = null;
   }
 };
 
-window.addEventListener('beforeunload', disconnectDevice);
-
+window.addEventListener('beforeunload', (event) => {
+  if(device && device.gatt.connected){
+    event.preventDefault();
+    event.returnValue = '';
+  }
+  // disconnectDevice();
+  });
 connectButton.addEventListener('click', async () => {
   connectButton.disabled = true;
 
@@ -134,7 +147,6 @@ connectButton.addEventListener('click', async () => {
     }
 
     output.textContent = `Requesting Bluetooth device...`;
-    progressBar.style.width = '5%';
     device = await navigator.bluetooth.requestDevice({
       optionalServices: [SERVICE_UUID],
       acceptAllDevices: true
@@ -146,34 +158,27 @@ connectButton.addEventListener('click', async () => {
     }
 
     output.textContent = `Found device: ${device.name}`;
-    progressBar.style.width = '10%';
     const server = await device.gatt.connect();
     output.textContent = `Connected to device: ${device.name}`;
 
     // Получаем сервис по UUID
     output.textContent = `Getting primary service...`;
-    progressBar.style.width = '15%';
     const service = await server.getPrimaryService(SERVICE_UUID);
     output.textContent = `Service found:', ${service.uuid}`;
-    progressBar.style.width = '16%';
 
     // Получаем характеристику TX по UUID
     output.textContent = `Getting characteristic TX...`;
-    progressBar.style.width = '17%';
     const characteristic_tx = await service.getCharacteristic(CHARACTERISTIC_TX_UUID);
     output.textContent = `Characteristic TX found:', ${characteristic_tx.uuid}`;
-    progressBar.style.width = '18%';
 
     // Получаем характеристику RX по UUID
     output.textContent = `Getting characteristic RX...`;
-    progressBar.style.width = '19%';
+
     const characteristic_rx = await service.getCharacteristic(CHARACTERISTIC_RX_UUID);
     output.textContent = `Characteristic RX found:', ${characteristic_rx.uuid}`;
-    progressBar.style.width = '20%';
 
     // Подписываемся на уведомления
     output.textContent = `Starting notifications...`;
-    progressBar.style.width = '25%';
     await characteristic_rx.startNotifications();
     characteristic_rx.addEventListener('characteristicvaluechanged', (event) => {
       const data = new Uint8Array(event.target.value.buffer);
@@ -183,8 +188,6 @@ connectButton.addEventListener('click', async () => {
 
     if (device && device.gatt.connected) {
       output.textContent = `Setup complete.`;
-      progressBar.style.width = '100%';
-
 
       console.log('Device connected');
       isConnected = true;
