@@ -36,7 +36,6 @@ module.exports = {
             loader: 'css-loader'
           },
           {
-            // Loader for webpack to process CSS with PostCSS
             loader: 'postcss-loader',
             options: {
               postcssOptions: {

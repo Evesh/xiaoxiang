@@ -57,11 +57,6 @@ let isMainRequest = true;
 let isEEPROM = false;
 let isConnected = false;
 let isDataReceived = false;
-let isFirstPacket = false;
-let isEEPROMReceived = false;
-let mainData = false;
-let cellsData = false;
-let eepromData = false;
 
 const connectButton = document.getElementById('connectButton');
 const output = document.getElementById('output');
@@ -141,7 +136,6 @@ connectButton.addEventListener('click', async () => {
     }
 
     if (device && device.gatt.connected) {
-      console.log('Уже подключено');
       await disconnectDevice();
       return;
     }
@@ -188,7 +182,6 @@ connectButton.addEventListener('click', async () => {
 
     if (device && device.gatt.connected) {
       output.textContent = `Setup complete.`;
-
       console.log('Device connected');
       isConnected = true;
       connectButton.textContent = 'Disconnect';
@@ -196,13 +189,12 @@ connectButton.addEventListener('click', async () => {
       requestInterval = setInterval(async () => {
         requestBmsData(characteristic_tx, isMainRequest);
         isMainRequest = !isMainRequest;
-      }, 1500);
+      }, 1000);
+
+
     }
 
     device.addEventListener('gattserverdisconnected', onDisconnect);
-    device.addEventListener('gattserverconnect', function () {
-      console.log('Device reconnected');
-    });
 
     function onDisconnect() {
       console.log('Device disconnected');
@@ -275,6 +267,7 @@ connectButton.addEventListener('click', async () => {
     document.getElementById('button-addon2').addEventListener('click', async () => {
       if (!device && device.gatt.connected) { output.textContent = 'Not connected to device.'; return; }
       const inputValue = document.getElementById('commandInput').value;
+      console.log('Input value:', inputValue);
       const uint8Array = hexStringToUint8Array(inputValue);
       try {
         const verifiedData = addChecksumToCommand(uint8Array); // (!) Checksum is not needed now
@@ -291,7 +284,6 @@ connectButton.addEventListener('click', async () => {
 
   } catch (error) {
     output.textContent = ``;
-    progressBar.style.width = '0%';
     // alert.classList.remove('invisible');
     alert.querySelector('span').textContent = `Error: ${error.message}`;
     alert.classList.add('show');
