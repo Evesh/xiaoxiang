@@ -251,6 +251,9 @@ export class MainInfoDisplay {
         this.chart = null;
         this.init();
 
+        this.loadedData = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
+        console.log('Загруженные данные:', this.loadedData);
+
         this.modalElement = document.getElementById('graphics');
 
         if (this.modalElement) {
@@ -262,8 +265,6 @@ export class MainInfoDisplay {
             })
         }
 
-        this.loadedData = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
-        console.log('Загруженные данные:', this.loadedData);
 
     }
 
@@ -566,40 +567,79 @@ export class MainInfoDisplay {
             });
         });
 
+
+        const ntcConfigContainer = controlsContainer.querySelector('#ntc_config');
+        ntcConfigContainer.querySelectorAll('.form-check').forEach(element => {
+            element.querySelector('.form-check-input').addEventListener('change', () => {
+                const switchesState = {};
+                ntcConfigContainer.querySelectorAll('.form-check-input').forEach(input => {
+                    const name = input.getAttribute('name');
+                    const value = input.checked;
+                    if(!name || !value) return;
+                    switchesState[name] = value;
+                });
+
+                console.log(switchesState);
+                this.callback({ ntc_config: switchesState }); // Передаём объект состояний
+            });
+        })
+
+        const funcConfigContainer = controlsContainer.querySelector('#func_config');
+        funcConfigContainer.querySelectorAll('.form-check').forEach(element => {
+            element.querySelector('.form-check-input').addEventListener('change', () => {
+                const switchesState = {};
+                funcConfigContainer.querySelectorAll('.form-check-input').forEach(input => {
+                    const name = input.getAttribute('name');
+                    const value = input.checked;
+                    if(!name || !value) return;
+                    switchesState[name] = value;
+                });
+                console.log(switchesState);
+                this.callback({ func_config: switchesState }); // Передаём объект состояний
+            });
+        })
+
+
+
         if (document.querySelector('#graphics')) {
-            controlsContainer.addEventListener('click', (event) => {
-                if (event.target.classList.contains('clickable') || event.target.parentElement.classList.contains('clickable')) {
 
-                    if (!event.target.hasAttribute('name')) {
-                        console.log('No name attribute', event.target);
-                        return;
-                    }
+            controlsContainer.querySelectorAll('.clickable').forEach(element => {
+                element.addEventListener('click', (event) => {
+                    if (event.target.closest('.clickable')) {
+                        const paramName = event.target.closest('.clickable').getAttribute('name');
+                        console.log('paramName', paramName);
 
-                    const paramName = event.target.getAttribute('name');
-                    this.chart = new ApexCharts(document.querySelector("#graphics").querySelector(".modal-body"), {
-                        chart: {
-                            type: 'line',
-                            stroke: {
-                                curve: 'smooth'
+                        this.chart = new ApexCharts(document.querySelector("#graphics").querySelector(".modal-body"), {
+                            chart: {
+                                type: 'line',
+                                stroke: {
+                                    curve: 'smooth'
+                                },
+                                markers: {
+                                    size: 0
+                                }
                             },
-                            markers: {
-                                size: 0
+                            series: [{
+                                name: paramName,
+                                data: paramName.includes("temperature-sensor-") ? this.loadedData.map(item => item.bleData.temperature[parseInt(paramName.substring(paramName.length - 1))]) : this.loadedData.map(item => item.bleData[paramName].toFixed(2))
+                            }],
+                            xaxis: {
+                                categories: this.loadedData.map(item => new Date(item.timestamp).toLocaleTimeString())
                             }
-                        },
-                        series: [{
-                            name: paramName.toUpperCase(),
-                            data: paramName.includes("temperature-sensor-") ? this.loadedData.map(item => item.bleData.temperature[parseInt(paramName.substring(paramName.length - 1))]) : this.loadedData.map(item => item.bleData[paramName].toFixed(2))
-                        }],
-                        xaxis: {
-                            categories: this.loadedData.map(item => new Date(item.timestamp).toLocaleTimeString())
-                        }
-                    });
-                    this.chart.render().then(() => this.modal.show());
-                }
-            })
+                        });
+                        this.chart.render().then(() => this.modal.show());
+                    }
+                })
+            });
         }
 
         return controlsContainer;
+    }
+
+
+
+    #updateSwitches(data) {
+
     }
 
     #updateControls(data) {
@@ -631,7 +671,6 @@ export class MainInfoDisplay {
             const spanValue = parseFloat(span.textContent);
 
             if (spanValue !== newValue) {
-                console.log('flash');
                 span.textContent = `${parseFloat(newValue.toFixed(3))} ${query}`;
                 this.#applyFlash(span);
 
@@ -659,17 +698,6 @@ export class MainInfoDisplay {
         updateValueWithFlash(document.getElementById('power_'), power, 'W');
         updateValueWithFlash(document.getElementById('capacity_'), capacity, 'Ah');
 
-        // const voltage = this.controls.querySelector('#voltage');
-        // voltage.textContent = `${data.totalVoltage.toFixed(2)} V`;
-
-        // const current = this.controls.querySelector('#current');
-        // current.textContent = `${data.current.toFixed(2)} A`;
-
-        // const power = this.controls.querySelector('#power');
-        // power.textContent = `${data.power.toFixed(2)} W`;
-
-        // const capacity = this.controls.querySelector('#capacity');
-        // capacity.textContent = `${data.residualCapacity.toFixed(2)}/${data.nominalCapacity.toFixed(2)} Ah`;
 
         for (let i = 0; i < data.numberOfTemperatureSensors; i++) {
             const temperatureSensor = this.controls.querySelector(`#temperature-sensor-${i}`);
@@ -690,13 +718,6 @@ export class MainInfoDisplay {
             icon.classList.add('bi-check-lg');
             span.textContent = 'No active protections';
         }
-        // const temperatureSensors = this.controls.querySelectorAll('.temp-sensor');
-        // temperatureSensors[0].textContent = `${data.temperature[0]} °C`;
-        // temperatureSensors[1].textContent = `${data.temperature[1]} °C`;
-
-        // const temperatureSensors = this.container.querySelectorAll('.bi-thermometer-half');
-        // this.controlsContainer.querySelector('#temperature-0').textContent = `${data.temperature[0]} °C`;
-        // this.controlsContainer.querySelector('#temperature-1').textContent = `${data.temperature[1]} °C`;
     }
 
     #applyFlash(element) {

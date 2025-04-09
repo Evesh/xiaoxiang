@@ -57,6 +57,7 @@ let isMainRequest = true;
 let isEEPROM = false;
 let isConnected = false;
 let isDataReceived = false;
+let lastCommand = 0x0;
 
 const connectButton = document.getElementById('connectButton');
 const output = document.getElementById('output');
@@ -190,7 +191,7 @@ connectButton.addEventListener('click', async () => {
       requestInterval = setInterval(async () => {
         requestBmsData(characteristic_tx, isMainRequest);
         isMainRequest = !isMainRequest;
-      }, 1000);
+      }, 2000);
 
 
     }
@@ -205,66 +206,6 @@ connectButton.addEventListener('click', async () => {
       clearInterval(requestInterval);
     }
 
-
-
-    mainInfoDisplay.setCallback(function (data) {
-
-      let command = null;
-
-      switch (Object.keys(data)[0]) {
-        case 'chargeMosfet':
-        case 'dischargeMosfet': {
-          const mosfetType = Object.keys(data)[0]; // 'chargeMosfet' или 'dischargeMosfet'
-          const newState = data[mosfetType]; // true/false - новое состояние
-
-          // Получаем текущие состояния
-          let currentCharge = (BMSMain.FET & 0x01) !== 0;
-          let currentDischarge = (BMSMain.FET & 0x02) !== 0;
-
-          // Обновляем нужное состояние
-          if (mosfetType === 'chargeMosfet') {
-            currentCharge = newState;
-          } else {
-            currentDischarge = newState;
-          }
-
-          // Определяем команду на основе комбинации состояний
-          let commandIndex;
-          if (currentCharge && currentDischarge) {
-            console.log('Both MOSFETs are ON');
-            commandIndex = 0;
-          } else if (!currentCharge && currentDischarge) {
-            console.log('Only Discharge MOSFET is ON');
-            commandIndex = 1;
-          } else if (currentCharge && !currentDischarge) {
-            console.log('Only Charge MOSFET is ON');
-            commandIndex = 2;
-          } else {
-            console.log('Both MOSFETs are OFF');
-            commandIndex = 3;
-          }
-
-          command = bms_mosfet_write[commandIndex];
-          break;
-        }
-
-        case 'eepromMode':
-          command = data.eepromMode ? EEPROM[0] : EEPROM[1];
-          console.log('Switch EEPROM mode:', command);
-          break;
-      }
-
-      console.log('Sending command: ', [...new Uint8Array(command)].map(b => b.toString(16)).join(' 0x'));
-      characteristic_tx.writeValue(command)
-        .then(() => {
-          console.log('Command sent successfully:', command);
-        })
-        .catch(error => {
-          console.error('Error sending command:', error);
-        });
-
-    });
-
     document.getElementById('button-addon2').addEventListener('click', async () => {
       if (!device && device.gatt.connected) { output.textContent = 'Not connected to device.'; return; }
       const inputValue = document.getElementById('commandInput').value;
@@ -273,8 +214,8 @@ connectButton.addEventListener('click', async () => {
       try {
         const verifiedData = addChecksumToCommand(uint8Array); // (!) Checksum is not needed now
         console.log('Sending data:', verifiedData);
-        // await characteristic_tx.writeValue(verifiedData);
-        requestBmsData2(characteristic_tx, characteristic_rx, uint8Array).then((response) => { console.log(response);});
+        await characteristic_tx.writeValue(verifiedData);
+        // requestBmsData2(characteristic_tx, characteristic_rx, uint8Array).then((response) => { console.log(response); });
 
 
       } catch (error) {
@@ -300,10 +241,14 @@ async function requestBmsData(characteristic_tx, isMainRequest) {
   try {
     if (isEEPROM) throw new Error('(!) You are in EEPROM mode');
     if (isMainRequest) {
+      console.log([...new Uint8Array(BMS_REQUEST_MAIN)].map(b => b.toString(16)).join(' 0x'));
       await characteristic_tx.writeValue(BMS_REQUEST_MAIN);
+      lastCommand = BMS_REQUEST_MAIN[2];
       output.textContent = 'Main data request sent.';
     } else {
+      console.log([...new Uint8Array(BMS_REQUEST_MAIN)].map(b => b.toString(16)).join(' 0x'));
       await characteristic_tx.writeValue(BMS_REQUEST_CELLS);
+      lastCommand = BMS_REQUEST_MAIN[2];
       output.textContent = 'Cell data request sent.';
     }
   } catch (error) {
@@ -343,7 +288,6 @@ async function requestBmsData2(characteristic_tx, characteristic_rx, command) {
 }
 
 function notifyCallback(data) {
-  // console.log([...new Uint8Array(data)].map(b => b.toString(16)).join(' 0x'));
 
   if (bmsDataError) {
     resetErrorBtn.classList.remove('invisible');
@@ -424,6 +368,10 @@ function getChecksumForReceivedData(data) {
 
 function bmsDataReceive(data) {
 
+  // console.log([...new Uint8Array(data)].map(b => b.toString(16)).join(' 0x'));
+
+  if (lastCommand === data[1]) console.log('Command much');
+
   if (data[1] === 0x00) {
     console.log('Enter EEPROM read');
     isEEPROM = true;
@@ -451,7 +399,7 @@ function bmsDataReceive(data) {
     BMSMain.residualCapacity = ((data[8] << 8) | data[9]) * 0.01;
     BMSMain.nominalCapacity = ((data[10] << 8) | data[11]) * 0.01;
     BMSMain.cycleLife = (data[12] << 8) | data[13];
-    BMSMain.productDate = parseBmsDate(); ((data[14] << 8) | data[15]);
+    BMSMain.productDate = parseBmsDate(((data[14] << 8) | data[15]));
     BMSMain.balanceStatus = (data[16] << 8) | data[17];
     BMSMain.balanceStatusHight = (data[18] << 8) | data[19];
     BMSMain.protectionStatus = (data[20] << 8) | data[21];
@@ -461,14 +409,12 @@ function bmsDataReceive(data) {
     BMSMain.numberOfCells = data[25];
     BMSMain.numberOfTemperatureSensors = data[26];
     const protection = getProtectionStatusText(BMSMain.protectionStatus);
-    console.log(`Protection status: ${protection}`);
 
     for (let i = 0; i < BMSMain.numberOfTemperatureSensors; i++) {
       const tempValue = (data[27 + i * 2] << 8) | data[28 + i * 2];
       BMSMain.temperature[i] = parseFloat(((tempValue - 2731) * 0.1).toFixed(1));
     }
 
-    // Определение состояния BMS
     if (BMSMain.current > 0.1) {
       BMSMain.bms_state = 1; // Зарядка
       BMSMain.power = BMSMain.current * BMSMain.totalVoltage;
@@ -500,7 +446,6 @@ function bmsDataReceive(data) {
     }
 
     const balancing = BMSMain.balanceStatus;
-    // const balancing = reverseBits(parseInt(BMSMain.balanceStatus, 16));
     BMSCells.balancing = [];
 
     if (balancing > 0) {
@@ -567,7 +512,6 @@ function parseBmsDate(dateValue) {
     year: year,
     month: month,
     day: day,
-    // Форматированная строка для удобства
     formatted: `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.${year}`
   };
 }
@@ -575,9 +519,7 @@ function parseBmsDate(dateValue) {
 const generateRandomVoltages = (nums) => {
   const voltages = [];
   for (let i = 0; i < nums; i++) {
-    // Генерируем случайное число от 3.000 до 4.000
-    const voltage = 3 + Math.random(); // Math.random() дает значение от 0 до 1
-    // Округляем до тысячных
+    const voltage = 3 + Math.random();
     const roundedVoltage = Math.round(voltage * 1000) / 1000;
     voltages.push(roundedVoltage);
   }
@@ -685,6 +627,109 @@ function eepromRead(response) {
 
   return result;
 }
+
+
+
+mainInfoDisplay.setCallback(function (data) {
+
+  let command = null;
+
+  switch (Object.keys(data)[0]) {
+    case 'chargeMosfet':
+    case 'dischargeMosfet': {
+      const mosfetType = Object.keys(data)[0]; // 'chargeMosfet' или 'dischargeMosfet'
+      const newState = data[mosfetType]; // true/false - новое состояние
+
+      // Получаем текущие состояния
+      let currentCharge = (BMSMain.FET & 0x01) !== 0;
+      let currentDischarge = (BMSMain.FET & 0x02) !== 0;
+
+      // Обновляем нужное состояние
+      if (mosfetType === 'chargeMosfet') {
+        currentCharge = newState;
+      } else {
+        currentDischarge = newState;
+      }
+
+      // Определяем команду на основе комбинации состояний
+      let commandIndex;
+      if (currentCharge && currentDischarge) {
+        console.log('Both MOSFETs are ON');
+        commandIndex = 0;
+      } else if (!currentCharge && currentDischarge) {
+        console.log('Only Discharge MOSFET is ON');
+        commandIndex = 1;
+      } else if (currentCharge && !currentDischarge) {
+        console.log('Only Charge MOSFET is ON');
+        commandIndex = 2;
+      } else {
+        console.log('Both MOSFETs are OFF');
+        commandIndex = 3;
+      }
+
+      command = bms_mosfet_write[commandIndex];
+      break;
+    }
+
+    case 'eepromMode':
+      command = data.eepromMode ? EEPROM[0] : EEPROM[1];
+      console.log('Switch EEPROM mode:', command);
+      break;
+
+    case 'func_config': {
+      const bitOrder = [
+        'switch',         // Бит 0 (0x01)
+        'scrl',           // Бит 1 (0x02)
+        'balance_en',     // Бит 2 (0x04)
+        'chg_balance_en', // Бит 3 (0x08)
+        'led_en',         // Бит 4 (0x10)
+        'led_num'         // Бит 5 (0x20)
+      ];
+
+      let outputData = 0; // Итоговое число (битовая маска)
+      bitOrder.forEach((key, index) => {
+        if (data.func_config[key]) {
+          outputData |= (1 << index); // Устанавливаем бит в 1, если значение true
+        }
+      });
+
+      console.log('Отправляем:', outputData);
+      return;
+      break;
+    }
+
+
+    case 'ntc_config': {
+      let outputData = 0;
+
+      for (let i = 0; i < 8; i++) {
+        const ntcKey = `ntc${i + 1}`; // ntc1, ntc2, ..., ntc8
+        if (data.ntc_config[ntcKey]) {
+          outputData |= (1 << i); // Устанавливаем бит, если NTC включен
+        }
+      }
+
+      console.log('Отправляем:', outputData);
+      return;
+      break;
+    }
+
+    default:
+      console.log('Unknown command:', data);
+      return;
+  }
+
+
+  console.log('Sending command: ', [...new Uint8Array(command)].map(b => b.toString(16)).join(' 0x'));
+  characteristic_tx.writeValue(command)
+    .then(() => {
+      console.log('Command sent successfully:', command);
+    })
+    .catch(error => {
+      console.error('Error sending command:', error);
+    });
+});
+
 
 
 async function readEEPROM(characteristic_tx, register) {

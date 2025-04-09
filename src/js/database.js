@@ -31,5 +31,4 @@ export function saveBLEData(bleData) {
     let savedData = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
     savedData.push(dataToSave);
     localStorage.setItem('bleDataCollection', JSON.stringify(savedData));
-    console.log('Данные сохранены:', dataToSave);
 }
