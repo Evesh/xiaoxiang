@@ -9,8 +9,8 @@ const mainInfoDisplay = new MainInfoDisplay('main-info-container', uiCallback);
 function uiCallback(data) { console.log('Data from UI:', data); }
 
 const SERVICE_UUID = '0000ff00-0000-1000-8000-00805f9b34fb'; // UUID сервиса
-const CHARACTERISTIC_TX_UUID = '0000ff02-0000-1000-8000-00805f9b34fb'; // UUID характеристики TX
 const CHARACTERISTIC_RX_UUID = '0000ff01-0000-1000-8000-00805f9b34fb'; // UUID характеристики RX
+const CHARACTERISTIC_TX_UUID = '0000ff02-0000-1000-8000-00805f9b34fb'; // UUID характеристики TX
 const BMS_REQUEST_MAIN = new Uint8Array([0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77]);
 const BMS_REQUEST_CELLS = new Uint8Array([0xDD, 0xA5, 0x4, 0x0, 0xFF, 0xFC, 0x77]);
 
@@ -120,14 +120,15 @@ const disconnectDevice = async () => {
 };
 
 window.addEventListener('beforeunload', (event) => {
-  if(device && device.gatt.connected){
+  if (device && device.gatt.connected) {
     event.preventDefault();
     event.returnValue = '';
   }
   // disconnectDevice();
-  });
+});
 connectButton.addEventListener('click', async () => {
   connectButton.disabled = true;
+  connectButton.querySelector('span').textContent = 'Connecting...';
 
   try {
     if (!navigator.bluetooth) {
@@ -184,7 +185,7 @@ connectButton.addEventListener('click', async () => {
       output.textContent = `Setup complete.`;
       console.log('Device connected');
       isConnected = true;
-      connectButton.textContent = 'Disconnect';
+      connectButton.querySelector('span').textContent = 'Disconnect';
 
       requestInterval = setInterval(async () => {
         requestBmsData(characteristic_tx, isMainRequest);
@@ -199,7 +200,7 @@ connectButton.addEventListener('click', async () => {
     function onDisconnect() {
       console.log('Device disconnected');
       isConnected = false;
-      connectButton.textContent = 'Connect';
+      connectButton.querySelector('span').textContent = 'Connect';
       mainInfoDisplay.reset();
       clearInterval(requestInterval);
     }
@@ -272,7 +273,10 @@ connectButton.addEventListener('click', async () => {
       try {
         const verifiedData = addChecksumToCommand(uint8Array); // (!) Checksum is not needed now
         console.log('Sending data:', verifiedData);
-        await characteristic_tx.writeValue(verifiedData);
+        // await characteristic_tx.writeValue(verifiedData);
+        requestBmsData2(characteristic_tx, characteristic_rx, uint8Array).then((response) => { console.log(response);});
+
+
       } catch (error) {
         console.error('Error writing data:', error);
         output.textContent = `Error writing data: ${error.message}`;
@@ -313,40 +317,39 @@ async function requestBmsData2(characteristic_tx, characteristic_rx, command) {
   if (!command instanceof Uint8Array) throw new Error('(!) Команда должна быть непустым массивом');
   if (command[command.length - 1] !== 0x77) throw new Error('(!) Команда должна заканчиваться на 0x77');
 
+
   return new Promise((resolve, reject) => {
     characteristic_tx.writeValue(command);
-
-    const timeoutId = setTimeout(() => {
-      characteristic_rx.removeEventListener('characteristicvaluechanged');
-      reject(new Error('Таймаут ожидания ответа'));
-    }, 500);
 
     characteristic_rx.addEventListener('characteristicvaluechanged', (event) => {
       clearTimeout(timeoutId);
       const data = new Uint8Array(event.target.value.buffer);
-      notifyCallback(data);
+
+      // notifyCallback(data, bmsDataReceive);
+      // // notifyCallback(data);
+      // if (data[0] === 0x77) {
+      //   characteristic_rx.removeEventListener('characteristicvaluechanged', (event) => { });
+      // }
+
       resolve(data);
     });
+
+    const timeoutId = setTimeout(() => {
+      // characteristic_rx.removeEventListener('characteristicvaluechanged', (event) => { });
+      reject(new Error('Таймаут ожидания ответа'));
+    }, 1000);
+
   });
 }
 
 function notifyCallback(data) {
   // console.log([...new Uint8Array(data)].map(b => b.toString(16)).join(' 0x'));
 
-  if (data === 0) {
-    console.log('End of data');
-    isDataReceived = false;
-  }
-
-  isDataReceived = true;
-
   if (bmsDataError) {
     resetErrorBtn.classList.remove('invisible');
     output.textContent = `BMS Data Error: ${bmsDataError}`;
     return;
   }
-
-  if (!resetErrorBtn.classList.contains('invisible')) resetErrorBtn.classList.add('invisible');
 
   if (bmsDataLengthReceived === 0) {
     // Первый пакет
@@ -370,12 +373,12 @@ function notifyCallback(data) {
 
   if (!bmsDataError) {
     if (bmsDataLengthReceived === bmsDataLengthExpected + 7) {
-      // Проверяем контрольную сумму
+
       if (getIsChecksumValidForReceivedData(bmsDataReceived)) {
-        bmsDataReceive(bmsDataReceived); // Обрабатываем данные
-        // Сбрасываем состояние для следующего запроса
+
+        bmsDataReceive(bmsDataReceived);
         bmsDataLengthReceived = 0;
-        bmsDataReceived = new Uint8Array(BMS_MAX_DATA_CAPACITY); // Очищаем буфер
+        bmsDataReceived = new Uint8Array(BMS_MAX_DATA_CAPACITY);
       } else {
         const checksum = getChecksumForReceivedData(bmsDataReceived);
         console.error(

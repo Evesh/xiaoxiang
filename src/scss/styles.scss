@@ -9,9 +9,13 @@
 }
 
 
-.speed{
-    font-family: "digital-7";
-    font-size: 48px;
+$main-theme-color: #0dcaf0;
+
+
+
+.form-check-input:checked {
+    background-color: $main-theme-color;
+    border-color: $main-theme-color;
 }
 
 .clickable {

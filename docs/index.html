@@ -9,7 +9,7 @@
 
 <body>
 
-  <div class="modal fade" id="graphics" tabindex="-1" aria-labelledby="graphics" style="display: none;"
+  <div class="modal fade" id="graphics" tabindex="-1" aria-labelledby="graphics"
     aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
       <div class="modal-content">
@@ -26,7 +26,7 @@
     </div>
   </div>
 
-  <div class="modal fade" id="settings" tabindex="-1" aria-labelledby="settings" style="display: none;"
+  <div class="modal fade" id="settings" tabindex="-1" aria-labelledby="settings"
     aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
       <div class="modal-content">
@@ -84,7 +84,14 @@
           <span class="d-inline-block text-truncate text-secondary" id="output" style="max-width: 150px;"></span>
           <button type="button" class="btn btn-danger invisible" id="resetErrorBtn"><i class="bi bi-bug"></i>Reseterror</button>
           <button class="btn btn-info text-light" data-bs-toggle="modal" data-bs-target="#settings"><i class="bi bi-gear-fill"></i></button>
-          <button class="btn btn-info text-light" style="width: 8em;" id="connectButton"><i class="bi bi-bluetooth"></i>Connect</button>
+          <button class="btn btn-info text-light" style="width: 8em;" id="connectButton">
+            <div class="container text-center p-0">
+              <div class="row">
+                <i class="col-2 bi bi-bluetooth"></i>
+                <span class="col-8">Connect</span>
+              </div>
+            </div>
+          </button>
         </div>
       </div>
     </nav>

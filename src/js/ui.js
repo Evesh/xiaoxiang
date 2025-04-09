@@ -426,7 +426,7 @@ export class MainInfoDisplay {
 
         </div>
 
-        <div class="row row-cols-4 p-3">
+        <div class="row row-cols-4 py-3">
             <div class="d-flex align-items-center justify-content-center">
                 <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted clickable" id="temperature-sensor-0" name="temperature-sensor-0">
                     <i class="bi bi-thermometer-half position-relative fs-3">
@@ -455,7 +455,7 @@ export class MainInfoDisplay {
             </div>
         </div>
 
-        <div class="row row-cols-3 mx-auto p-3">
+        <div class="row row-cols-3 p-3">
 
              <div class="col border-start">
                 <input type="checkbox" name="toggle" class="sw" id="switchChargeMosfet" disabled>
@@ -472,7 +472,7 @@ export class MainInfoDisplay {
 
         </div>
 
-        <div class="row row-cols-3 mx-auto p-3">
+        <div class="row row-cols-3 p-3">
 
             <div class="col border-start" id="ntc_config">
                 <div class="form-check form-switch">
@@ -684,12 +684,10 @@ export class MainInfoDisplay {
         if (data.protection && data.protectionStatus.length > 0) {
             icon.classList.remove('bi-check-lg');
             icon.classList.add('bi-x-lg');
-            icon.style.color = 'red';
             span.textContent = data.protectionStatus;
         } else {
             icon.classList.remove('bi-x-lg');
             icon.classList.add('bi-check-lg');
-            icon.style.color = 'green';
             span.textContent = 'No active protections';
         }
         // const temperatureSensors = this.controls.querySelectorAll('.temp-sensor');
