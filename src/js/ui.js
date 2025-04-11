@@ -9,16 +9,16 @@ export class BatteryDisplay {
         this.minVoltage = 0;
         this.maxVoltage = 0;
         this.voltageDifference = 0;
-
         this.batteryMaxVoltage = 4.10;
         this.batteryMinVoltage = 3.10;
 
         this.init();
     }
 
+
+
     init() {
         this.container.innerHTML = '';
-
         const options = document.createElement('div');
         options.classList.add('controls-container', 'row', 'row-cols-3', 'justify-content-around', 'pb-5');
 
@@ -71,8 +71,7 @@ export class BatteryDisplay {
           <div class="col p-2 d-flex align-items-center justify-content-center">
             <span class="me-3 rounded-circle border border-1 border-secondary d-flex justify-content-center align-items-center" style="width: 25px; height: 25px; white-space: nowrap;">${i + 1}</span>
             <div class="battery position-relative shadow" id="battery-container-${i}">
-              <span class="badge text-bg-light z-1 position-absolute top-50 start-50 translate-middle"
-                id="battery-${i}">0.00V</span>
+              <span class="badge text-bg-light z-1 position-absolute top-50 start-50 translate-middle"id="battery-${i}">0.00V</span>
               <span class="bar"></span>
               <span class="bar"></span>
               <span class="bar"></span>
@@ -206,6 +205,10 @@ export class BatteryDisplay {
         }
     }
 
+    #reset() {
+
+    }
+
     #applyValueGlow(element) {
         if (!element) {
             console.error('Element is not defined');
@@ -240,8 +243,6 @@ export class BatteryDisplay {
 
 
 
-
-
 export class MainInfoDisplay {
     constructor(containerId) {
         if (!containerId) { throw new Error('containerId is not defined'); }
@@ -250,9 +251,6 @@ export class MainInfoDisplay {
         this.callback = null;
         this.chart = null;
         this.init();
-
-        this.loadedData = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
-        console.log('Загруженные данные:', this.loadedData);
 
         this.modalElement = document.getElementById('graphics');
 
@@ -264,8 +262,6 @@ export class MainInfoDisplay {
                 }
             })
         }
-
-
     }
 
     init() {
@@ -287,35 +283,44 @@ export class MainInfoDisplay {
     }
 
     updateEEPROM(data) {
+        console.log('Data updateEEPROM:', data);
+
         const { register, key, value } = data;
         const block = document.querySelector(`#${register}`);
 
         if (!block) {
-            console.warn(`Element with ID "${register}" not found`);
+            console.error(`Element with ID "${register}" not found`);
             console.log(data);
             return;
         }
 
         for (const [key, value] of Object.entries(data)) {
             if (key === 'register') continue;
-            console.log(`${key}: ${value}`);
             const element = document.querySelector(`input[name="${key}"]`);
             if (element) {
+                element.removeAttribute('disabled');
                 element.checked = Boolean(value);
             } else {
-                console.warn(`Element not found: input#${key}`);
+                console.error(`Element not found: input#${key}`);
             }
         }
+        
+    }
 
+    clearEEPROMswitches() {
+        const ntcConfigContainer = document.querySelector('#ntc_config');
+        ntcConfigContainer.querySelectorAll('input').forEach(input => input.checked = false);
+        const funcConfigContainer = document.querySelector('#func_config');
+        funcConfigContainer.querySelectorAll('input').forEach(input => input.checked = false);
     }
 
     reset() {
         this.progressContainer.querySelector('.progress-bar').style.width = '0%';
-        const emptyData = {
-            totalVoltage: 0,
-            current: 0,
-            residualCapacity: 0,
-            nominalCapacity: 0,
+        const emptyDataMain = {
+            totalVoltage: 0.0,
+            current: 0.0,
+            residualCapacity: 0.0,
+            nominalCapacity: 0.0,
             cycleLife: 0,
             productDate: 0,
             balanceStatus: 0,
@@ -329,10 +334,11 @@ export class MainInfoDisplay {
             temperature: [0, 0, 0, 0],
             bms_state: 0,
             power: 0,
-
         };
-        this.#updateProgressBar(emptyData);
-        this.#updateControls(emptyData);
+
+        this.#updateProgressBar(emptyDataMain);
+        this.#updateControls(emptyDataMain);
+        this.clearEEPROMswitches();
     }
 
     #renderProgressBar() {
@@ -384,7 +390,6 @@ export class MainInfoDisplay {
             progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
         }
     }
-
     #renderControls() {
         // <div class="controls-container row row-cols-3 mx-auto p-3">
         const controlsContainer = document.createElement('div');
@@ -393,15 +398,15 @@ export class MainInfoDisplay {
 
         <div class="row row-cols-3 justify-content-around py-3">
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded clickable" id="voltage_" name="totalVoltage" style="width: 160px; height: 90px;">
-                    <div class="title text-muted">Voltage</div>
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded text-muted clickable" id="voltage_" name="totalVoltage" style="width: 160px; height: 90px;">
+                    <div class="title">Voltage</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
                         <span id="voltage" class="fw-medium">0.00 V</span>
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded clickable" id="current_" name="current" style="width: 160px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded text-muted clickable" id="current_" name="current" style="width: 160px; height: 90px;">
                     <div class="title text-muted">Current</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
@@ -409,7 +414,7 @@ export class MainInfoDisplay {
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded clickable" id="power_" name="power" style="width: 160px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded text-muted clickable" id="power_" name="power" style="width: 160px; height: 90px;">
                     <div class="title text-muted">Power</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
@@ -417,7 +422,7 @@ export class MainInfoDisplay {
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded clickable" id="capacity_" name="residualCapacity" style="width: 160px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded text-muted clickable" id="capacity_" name="residualCapacity" style="width: 160px; height: 90px;">
                     <div class="title text-muted">Capacity</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
@@ -438,19 +443,25 @@ export class MainInfoDisplay {
             </div>
             <div class="d-flex align-items-center justify-content-center">
                 <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted clickable" id="temperature-sensor-1" name="temperature-sensor-1">
-                    <i class="bi bi-thermometer-half position-relative fs-3"></i>
+                    <i class="bi bi-thermometer-half position-relative fs-3">
+                        <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
+                    </i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
                 <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted clickable" id="temperature-sensor-2" name="temperature-sensor-2">
-                    <i class="bi bi-thermometer-half position-relative fs-3"></i>
+                    <i class="bi bi-thermometer-half position-relative fs-3">
+                        <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
+                    </i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
                 <div class="value fs-5 shadow p-3 mb-5 bg-body-tertiary rounded opacity-25 text-muted clickable" id="temperature-sensor-3" name="temperature-sensor-3">
-                    <i class="bi bi-thermometer-half position-relative fs-3"></i>
+                    <i class="bi bi-thermometer-half position-relative fs-3">
+                        <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
+                    </i>
                     <span class="temp-sensor fs-4">0 °C</span>
                 </div>
             </div>
@@ -477,35 +488,35 @@ export class MainInfoDisplay {
 
             <div class="col border-start" id="ntc_config">
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="ntc1">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ntc1" disabled>
                     <label class="form-check-label" for="ntc_config_ntc1">ntc1</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="ntc2">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ntc2" disabled>
                     <label class="form-check-label" for="ntc_config_ntc2">ntc2</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="ntc3">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ntc3" disabled>
                     <label class="form-check-label" for="ntc_config_ntc3">ntc3</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="ntc4">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ntc4" disabled>
                     <label class="form-check-label" for="ntc_config_ntc4">ntc4</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="ntc5">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ntc5" disabled>
                     <label class="form-check-label" for="ntc_config_ntc5">ntc5</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="ntc6">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ntc6" disabled>
                     <label class="form-check-label" for="ntc_config_ntc6">ntc6</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="ntc7">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ntc7" disabled>
                     <label class="form-check-label" for="ntc_config_ntc7">ntc7</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="ntc8">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ntc8" disabled>
                     <label class="form-check-label" for="ntc_config_ntc8">ntc8</label>
                 </div>
 
@@ -513,27 +524,27 @@ export class MainInfoDisplay {
 
             <div class="col border-start" id="func_config">
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="switch" disabled>
                     <label class="form-check-label" for="func_config_switch">switch</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="scrl">
+                    <input class="form-check-input" type="checkbox" role="switch" name="scrl" disabled>
                     <label class="form-check-label" for="func_config_scrl">scrl</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="balance_en">
+                    <input class="form-check-input" type="checkbox" role="switch" name="balance_en" disabled>
                     <label class="form-check-label" for="func_config_balance_en">balance_en</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="funcbalance_en">
+                    <input class="form-check-input" type="checkbox" role="switch" name="chg_balance_en" disabled>
                     <label class="form-check-label" for="func_config_chg_balance_en">chg_balance_en</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="led_en">
+                    <input class="form-check-input" type="checkbox" role="switch" name="led_en" disabled>
                     <label class="form-check-label" for="func_config_led_en">led_en</label>
                 </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="led_num">
+                    <input class="form-check-input" type="checkbox" role="switch" name="led_num" disabled>
                     <label class="form-check-label" for="func_config_led_num">led_num</label>
                 </div>
             </div>
@@ -575,12 +586,12 @@ export class MainInfoDisplay {
                 ntcConfigContainer.querySelectorAll('.form-check-input').forEach(input => {
                     const name = input.getAttribute('name');
                     const value = input.checked;
-                    if(!name || !value) return;
+                    if (!name || !value) return;
                     switchesState[name] = value;
                 });
 
                 console.log(switchesState);
-                this.callback({ ntc_config: switchesState }); // Передаём объект состояний
+                this.callback({ ntc_config: switchesState });
             });
         })
 
@@ -591,14 +602,13 @@ export class MainInfoDisplay {
                 funcConfigContainer.querySelectorAll('.form-check-input').forEach(input => {
                     const name = input.getAttribute('name');
                     const value = input.checked;
-                    if(!name || !value) return;
+                    if (!name || !value) return;
                     switchesState[name] = value;
                 });
                 console.log(switchesState);
-                this.callback({ func_config: switchesState }); // Передаём объект состояний
+                this.callback({ func_config: switchesState });
             });
         })
-
 
 
         if (document.querySelector('#graphics')) {
@@ -608,6 +618,9 @@ export class MainInfoDisplay {
                     if (event.target.closest('.clickable')) {
                         const paramName = event.target.closest('.clickable').getAttribute('name');
                         console.log('paramName', paramName);
+
+                        const loadedData = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
+                        console.log('Данные обновлены', loadedData);
 
                         this.chart = new ApexCharts(document.querySelector("#graphics").querySelector(".modal-body"), {
                             chart: {
@@ -621,10 +634,10 @@ export class MainInfoDisplay {
                             },
                             series: [{
                                 name: paramName,
-                                data: paramName.includes("temperature-sensor-") ? this.loadedData.map(item => item.bleData.temperature[parseInt(paramName.substring(paramName.length - 1))]) : this.loadedData.map(item => item.bleData[paramName].toFixed(2))
+                                data: paramName.includes("temperature-sensor-") ? loadedData.map(item => item.bleData.temperature[parseInt(paramName.substring(paramName.length - 1))]) : loadedData.map(item => item.bleData[paramName].toFixed(2))
                             }],
                             xaxis: {
-                                categories: this.loadedData.map(item => new Date(item.timestamp).toLocaleTimeString())
+                                categories: loadedData.map(item => new Date(item.timestamp).toLocaleTimeString())
                             }
                         });
                         this.chart.render().then(() => this.modal.show());
@@ -634,12 +647,6 @@ export class MainInfoDisplay {
         }
 
         return controlsContainer;
-    }
-
-
-
-    #updateSwitches(data) {
-
     }
 
     #updateControls(data) {
@@ -652,7 +659,6 @@ export class MainInfoDisplay {
         const power = parseFloat(data.power.toFixed(2));
         const capacity = parseFloat(data.residualCapacity.toFixed(2));
 
-
         const switchChargeMosfet = this.controls.querySelector('#switchChargeMosfet');
         const switchDisChargeMosfet = this.controls.querySelector('#switchDisChargeMosfet');
 
@@ -662,7 +668,6 @@ export class MainInfoDisplay {
 
         switchChargeMosfet.checked = chargeMosfetState;
         switchDisChargeMosfet.checked = disChargeMosfetState;
-
 
         const updateValueWithFlash = (element, newValue, query) => {
             const valueDiv = element.querySelector('.value');

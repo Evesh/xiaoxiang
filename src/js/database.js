@@ -1,5 +1,3 @@
-
-
 let bleDataPrev = {
     totalVoltage: 0,
     current: 0,
@@ -21,6 +19,10 @@ export function saveBLEData(bleData) {
         return;
     }
 
+    // if(bleData.totalVoltage - bleDataPrev.totalVoltage < 0.01 || bleDataPrev.totalVoltage - bleData.totalVoltage < 0.01) {
+    //     return
+    // }
+
     bleDataPrev = bleData;
 
     const dataToSave = {
@@ -32,3 +34,5 @@ export function saveBLEData(bleData) {
     savedData.push(dataToSave);
     localStorage.setItem('bleDataCollection', JSON.stringify(savedData));
 }
+
+
