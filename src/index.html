@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 
 <head>
   <meta charset="utf-8">
@@ -7,10 +7,13 @@
   <title>XiaoXiang</title>
 </head>
 
-<body style=>
+<body>
 
-  <div class="modal fade" id="graphics" tabindex="-1" aria-labelledby="graphics"
-    aria-hidden="true">
+  <div class="developer-bar fixed-bottom m-3 shadow-lg p-3 mb-5 bg-body-tertiary rounded" style="height: 50px;width: 300px;">
+    <input type="range" class="form-range" min="2.5" max="4.4" step="0.1" id="customRange3">
+  </div>
+
+  <div class="modal fade" id="graphics" tabindex="-1" aria-labelledby="graphics" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
       <div class="modal-content">
         <div class="modal-header">
@@ -26,8 +29,7 @@
     </div>
   </div>
 
-  <div class="modal fade" id="settings" tabindex="-1" aria-labelledby="settings"
-    aria-hidden="true">
+  <div class="modal fade" id="settings" tabindex="-1" aria-labelledby="settings" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
       <div class="modal-content">
         <div class="modal-header">
@@ -38,9 +40,8 @@
 
           <div class="input-group mx-auto">
             <span class="input-group-text">Команда</span>
-            <input type="text" class="form-control" placeholder="Recipient's username"
-              aria-label="0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77" aria-describedby="button-addon2" id="commandInput"
-              value="0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77">
+            <input type="text" class="form-control" placeholder="" aria-label="0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77"
+              aria-describedby="button-addon2" id="commandInput" value="0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77">
             <button class="btn btn-outline-secondary" type="button" id="button-addon2">Отправить</button>
 
             <div class="input-group p-3">
@@ -58,7 +59,8 @@
           <div class="statistic">
             <div class="input-group">
               <span>Download statistic</span>
-              <button type="button" class="btn btn-info text-light" id="downloadButton"><i class="bi bi-download"></i></button>
+              <button type="button" class="btn btn-info text-light" id="downloadButton"><i
+                  class="bi bi-download"></i></button>
             </div>
           </div>
 
@@ -77,21 +79,20 @@
     <nav class="navbar bg-body-tertiary">
       <div class="container-fluid">
 
-        <a class="navbar-brand" href="#"><img class="rounded" src="logo.webp" alt="Logo" width="32" height="32"
-            class="d-inline-block align-text-top"> XiaoXiang BMS</a>
+        <a class="navbar-brand" href="#"><img class="rounded" src="logo.webp" alt="Logo" width="38" height="38"
+            class="d-inline-block align-text-top"> BMS</a>
 
         <div class="controls">
           <span class="d-inline-block text-truncate text-secondary" id="output" style="max-width: 150px;"></span>
 
-          <button type="button" class="btn btn-warning invisible" id="timeoutBtn"><i class="bi bi-hourglass-bottom"></i></button>
+          <button type="button" class="btn btn-warning invisible" id="timeoutBtn"><i
+              class="bi bi-hourglass-bottom"></i></button>
           <button type="button" class="btn btn-danger invisible" id="resetErrorBtn"><i class="bi bi-bug"></i></button>
-          <button class="btn btn-info text-light" data-bs-toggle="modal" data-bs-target="#settings"><i class="bi bi-gear-fill"></i></button>
+          <button class="btn btn-info text-light" data-bs-toggle="modal" data-bs-target="#settings"><i
+              class="bi bi-gear-fill"></i></button>
           <button class="btn btn-info text-light" style="width: 8em;" id="connectButton">
             <div class="container text-center p-0">
-              <div class="row">
-                <i class="col-2 bi bi-bluetooth"></i>
-                <span class="col-8">Connect</span>
-              </div>
+              <div class="row"> <i class="col-2 bi bi-bluetooth"></i> <span class="col-8">Connect</span> </div>
             </div>
           </button>
         </div>

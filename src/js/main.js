@@ -2,55 +2,25 @@ import '../scss/styles.scss';
 import '../scss/toggle.scss';
 import { BatteryDisplay, MainInfoDisplay } from './ui';
 import { saveBLEData } from './database';
-
+import { SERVICE_UUID, CHARACTERISTIC_RX_UUID, CHARACTERISTIC_TX_UUID, EEPROM_REGISTERS, BMSMain } from './variables';
 
 const batteryDisplay = new BatteryDisplay(14, 'battery-container');
 const mainInfoDisplay = new MainInfoDisplay('main-info-container', uiCallback);
 function uiCallback(data) { console.log('Data from UI:', data); }
 
-const SERVICE_UUID = '0000ff00-0000-1000-8000-00805f9b34fb'; // UUID сервиса
-const CHARACTERISTIC_RX_UUID = '0000ff01-0000-1000-8000-00805f9b34fb'; // UUID характеристики RX
-const CHARACTERISTIC_TX_UUID = '0000ff02-0000-1000-8000-00805f9b34fb'; // UUID характеристики TX
-const BMS_REQUEST_MAIN = new Uint8Array([0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77]);
-const BMS_REQUEST_CELLS = new Uint8Array([0xDD, 0xA5, 0x4, 0x0, 0xFF, 0xFC, 0x77]);
-
-
 document.addEventListener('myCustomEvent', (e) => { console.log('Получены данные:', e.detail); });
 
-const bms_mosfet_write = [
-  new Uint8Array([0xDD, 0x5A, 0xE1, 0x02, 0x00, 0x00, 0xFF, 0x1D, 0x77]), // All ON
-  new Uint8Array([0xDD, 0x5A, 0xE1, 0x02, 0x00, 0x01, 0xFF, 0x1C, 0x77]), // discharge ON
-  new Uint8Array([0xDD, 0x5A, 0xE1, 0x02, 0x00, 0x02, 0xFF, 0x1B, 0x77]), // charge ON
-  new Uint8Array([0xDD, 0x5A, 0xE1, 0x02, 0x00, 0x03, 0xFF, 0x1A, 0x77]), // All OFF
-];
-
-const EEPROM = [
-  new Uint8Array([0xdd, 0x5a, 0x00, 0x02, 0x56, 0x78, 0xff, 0x30, 0x77]), // Enter
-  new Uint8Array([0xdd, 0x5a, 0x01, 0x02, 0x00, 0x00, 0xff, 0xfd, 0x77]), // Exit
-  new Uint8Array([0xdd, 0x5a, 0x01, 0x02, 0x28, 0x28, 0xFF, 0xAD, 0x77]), // Exit with save
-]
-
-// const EEPROM_REGISTERS = new Uint8Array([0x2D, 0x2E, 0x10, 0x11, 0x12, 0x13, 0x14, 0x32, 0x33, 0x34, 0x35]);
-const EEPROM_REGISTERS = new Uint8Array([0x2D, 0x2E]);
-
-const BMSMain = {
-  totalVoltage: 0, current: 0, residualCapacity: 0, nominalCapacity: 0, cycleLife: 0,
-  productDate: 0, balanceStatus: 0, balanceStatusHight: 0, protectionStatus: 0, version: 0,
-  RSOC: 0, FET: 0, numberOfCells: 0, numberOfTemperatureSensors: 0, temperature: [], bms_state: 0,
-  power: 0,
-};
+// const EEPROM_REGISTERS = new Uint8Array([0x2D, 0x2E]);
 
 const BMSCells = { cell: [], balancing: [] };
-
 const BMS_MAX_DATA_CAPACITY = 1024; // Максимальный размер данных
 const TIMEOUT_LENGTH = 15000;
 let characteristic_tx = null;
 let characteristic_rx = null;
-let bmsDataReceived = new Uint8Array(BMS_MAX_DATA_CAPACITY); // Буфер для хранения данных
-let bmsDataLengthReceived = 0; // Количество полученных байт
-let bmsDataLengthExpected = 0; // Ожидаемое количество байт
-let bmsDataError = false; // Флаг ошибки
-let device = null; // Переменная для хранения подключенного устройства
+let bmsDataLengthReceived = 0;
+let bmsDataLengthExpected = 0;
+let bmsDataError = false;
+let device = null;
 let requestInterval = null;
 let isMainRequest = true;
 let isEEPROM = false;
@@ -62,12 +32,12 @@ let lastCommand = 0x0;
 let bmsBuffer = new Uint8Array(0);
 let bytesReceived = 0;
 let expectedLength = 0;
-
+let isEEPROMChanged = false;
 
 const connectButton = document.getElementById('connectButton');
 const output = document.getElementById('output');
-const alert = document.getElementById('alert');
 const batteryVoltageTestingRange = document.getElementById('batteryVoltageTestingRange');
+const customRange3 = document.getElementById('customRange3');
 const percentsTestingRange = document.getElementById('percentsTestingRange');
 const resetErrorBtn = document.getElementById('resetErrorBtn');
 const downloadButton = document.getElementById('downloadButton');
@@ -96,6 +66,15 @@ batteryVoltageTestingRange.addEventListener('input', () => {
   batteryDisplay.update({ cell, balancing });
 });
 
+customRange3.addEventListener('input', () => {
+  const voltage = customRange3.value;
+  console.log('Voltage:', voltage);
+  const cell = [voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage];
+  const balancing = [1, 3, 5, 9, 13]
+  console.log('Balancing:', balancing);
+  batteryDisplay.update({ cell, balancing });
+});
+
 percentsTestingRange.addEventListener('input', () => {
   const RSOC = percentsTestingRange.value;
   mainInfoDisplay.update({
@@ -118,7 +97,6 @@ resetErrorBtn.addEventListener('click', () => {
 
 const disconnectDevice = async () => {
   if (device && device.gatt.connected) {
-    console.log(device);
     await device.gatt.disconnect();
     console.log('Device disconnected:', device.name);
     output.textContent = 'Device disconnected.';
@@ -178,11 +156,6 @@ connectButton.addEventListener('click', async () => {
 
     output.textContent = `Starting notifications...`;
     await characteristic_rx.startNotifications();
-    characteristic_rx.addEventListener('characteristicvaluechanged', (event) => {
-      const data = new Uint8Array(event.target.value.buffer);
-      notifyCallback(data);
-    });
-
 
     if (device && device.gatt.connected) {
       output.textContent = `Setup complete.`;
@@ -190,9 +163,18 @@ connectButton.addEventListener('click', async () => {
       isConnected = true;
       connectButton.querySelector('span').textContent = 'Disconnect';
 
+      const mainRequests = new Uint8Array([0x03, 0x04])
+      const mainRequestsSize = mainRequests.length;
+      let mainRequestsCount = 0;
+
+      // console.log('Получены данные', [...new Uint8Array(data)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
+
       requestInterval = setInterval(async () => {
-        requestBmsData(characteristic_tx, isMainRequest);
-        isMainRequest = !isMainRequest;
+        if (isEEPROM) return;
+        if (mainRequestsCount >= mainRequestsSize) mainRequestsCount = 0;
+        requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([0xA5]), register: new Uint8Array([mainRequests[mainRequestsCount]]) }).
+          then((data) => { processData(data); });
+        mainRequestsCount++;
       }, 2000);
 
     }
@@ -200,7 +182,29 @@ connectButton.addEventListener('click', async () => {
     device.addEventListener('gattserverdisconnected', onDisconnect);
 
     mainInfoDisplay.setCallback((data) => {
-      eepromWrite(data, characteristic_tx);
+
+      if (!isEEPROM) {
+        const enterEEPROMCommand = eepromWrite({ eepromMode: true });
+        console.log('Data to write (EEPROM):', [...new Uint8Array(enterEEPROMCommand)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
+        requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([enterEEPROMCommand[0]]), register: new Uint8Array([enterEEPROMCommand[1]]), data: new Uint8Array(enterEEPROMCommand.slice(2)) })
+          .then((dataToRead) => { processData(dataToRead); })
+          .catch((error) => { console.error(error); return; });
+      }
+
+      const dataToWrite = eepromWrite(data);
+      console.log('Data to write (EEPROM):', [...new Uint8Array(dataToWrite)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
+
+      requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([dataToWrite[0]]), register: new Uint8Array([dataToWrite[1]]), data: new Uint8Array(dataToWrite.slice(2)) }).
+        // requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([dataToWrite[0]]), register: new Uint8Array([dataToWrite[1]]), data: new Uint8Array(EEPROM_ENTER.slice(2)) }).
+        then((dataToRead) => { processData(dataToRead); });
+
+      if (isEEPROM) {
+        const exitEEPROMCommand = eepromWrite({ eepromMode: false });
+        console.log('Data to write (EEPROM):', [...new Uint8Array(exitEEPROMCommand)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
+        requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([exitEEPROMCommand[0]]), register: new Uint8Array([exitEEPROMCommand[1]]), data: new Uint8Array(exitEEPROMCommand.slice(2)) })
+          .then((dataToRead) => { processData(dataToRead); })
+          .catch((error) => { console.error(error); return; });
+      }
     });
 
 
@@ -217,10 +221,11 @@ connectButton.addEventListener('click', async () => {
       const inputValue = document.getElementById('commandInput').value;
       const uint8Array = hexStringToUint8Array(inputValue);
       try {
-        const verifiedData = addChecksumToCommand(uint8Array); // (!) Checksum is not needed now
-        console.log('From Input:', [...verifiedData].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
-        await characteristic_tx.writeValue(verifiedData);
-        // requestBmsData2(characteristic_tx, characteristic_rx, uint8Array).then((response) => { console.log(response); });
+
+        requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([uint8Array[1]]), register: new Uint8Array([uint8Array[2]]), data: new Uint8Array(uint8Array.slice(3)) }).
+          then((data) => { processData(data); });
+
+
       } catch (error) {
         console.error('Error writing data:', error);
         output.textContent = `Error writing data: ${error.message}`;
@@ -236,162 +241,67 @@ connectButton.addEventListener('click', async () => {
   }
 });
 
-async function requestBmsData(characteristic_tx, isMainRequest) {
-  try {
-    if (isEEPROM) throw new Error('(!) You are in EEPROM mode');
-    if (isMainRequest) {
-      await characteristic_tx.writeValue(BMS_REQUEST_MAIN);
-      lastCommand = BMS_REQUEST_MAIN[2];
-      output.textContent = 'Main data request sent.';
-    } else {
-      await characteristic_tx.writeValue(BMS_REQUEST_CELLS);
-      lastCommand = BMS_REQUEST_MAIN[2];
-      output.textContent = 'Cell data request sent.';
-    }
-  } catch (error) {
-    console.error('Error writing data:', error);
-    output.textContent = `Error writing data: ${error.message}`;
-  }
-}
 
-async function requestBmsData2(characteristic_tx, characteristic_rx, command) {
-  if (isEEPROM) throw new Error('(!) Вы находитесь в режиме EEPROM');
-  if (!command instanceof Uint8Array) throw new Error('(!) Команда должна быть непустым массивом');
-  if (command[command.length - 1] !== 0x77) throw new Error('(!) Команда должна заканчиваться на 0x77');
+async function requestData(characteristic_tx, characteristic_rx, { commadType, register, data = null }) {
+  // if (isEEPROM) console.warn('EEPROM Mode Enabled');
+  if (!(commadType instanceof Uint8Array)) throw new Error('(!) Command type must be a Uint8Array');
+  if (!(register instanceof Uint8Array)) throw new Error('(!) Register must be a Uint8Array');
+  if (data !== null && !(data instanceof Uint8Array)) throw new Error('(!) Data must be a Uint8Array');
+  if (data === null) data = new Uint8Array([0x0]);
+  let start = null;
 
 
   return new Promise((resolve, reject) => {
-    characteristic_tx.writeValue(command);
+    let receivedData = new Uint8Array(0);
+    let timeoutId;
 
-    characteristic_rx.addEventListener('characteristicvaluechanged', (event) => {
+    const handleNotification = (event) => {
+      const newData = new Uint8Array(event.target.value.buffer);
+      receivedData = concatenateUint8Arrays(receivedData, newData);
+
+      if (receivedData[receivedData.length - 1] === 0x77) {
+
+        const end = new Date().getTime();
+        const time = end - start;
+        console.log('Время выполнения:' + time);
+
+        cleanup();
+        resolve(receivedData);
+      }
+    };
+
+    const cleanup = () => {
+      characteristic_rx.removeEventListener('characteristicvaluechanged', handleNotification);
       clearTimeout(timeoutId);
-      const data = new Uint8Array(event.target.value.buffer);
+    };
 
-      // notifyCallback(data, bmsDataReceive);
-      // // notifyCallback(data);
-      // if (data[0] === 0x77) {
-      //   characteristic_rx.removeEventListener('characteristicvaluechanged', (event) => { });
-      // }
-
-      resolve(data);
-    });
-
-    const timeoutId = setTimeout(() => {
-      // characteristic_rx.removeEventListener('characteristicvaluechanged', (event) => { });
+    timeoutId = setTimeout(() => {
+      cleanup();
       reject(new Error('Таймаут ожидания ответа'));
-    }, 1000);
+    }, 2000);
 
+    characteristic_rx.addEventListener('characteristicvaluechanged', handleNotification);
+    const command = addChecksumToCommand(new Uint8Array([0xDD, ...commadType, ...register, ...data]));
+    console.log('Sending command: ', [...new Uint8Array(command)].map(b => b.toString(16)).join(' ').toUpperCase());
+    start = new Date().getTime();
+    characteristic_tx.writeValue(command)
+      .catch(err => {
+        cleanup();
+        reject(err);
+      });
   });
 }
 
-
-function notifyCallback(data) {
-  if (data.byteLength === 1 && data[0] === 0) {
-    isTimeout = true;
-    timeoutBtn.classList.remove('hidden');
-    return;
-  }
-
-  isTimeout = false;
-  timeoutBtn.classList.add('hidden');
-
-  if (bmsDataError) {
-    resetErrorBtn.classList.remove('hidden');
-    output.textContent = `Error: ${bmsDataError}`;
-    return;
-  }
-
-  if (bytesReceived === 0) {
-    if (data[0] === 0xDD) {
-      bmsDataError = [0x00, 0xE1].includes(data[2]) ? null : "Invalid header";
-      expectedLength = data[3];
-
-      if (!bmsDataError && data[2] !== 0xE1) {
-        appendData(data);
-      }
-    }
-  } else {
-    appendData(data);
-  }
-
-  if (bmsDataError) {
-    console.error(`Data error: 0x${data[2]?.toString(16)}, received ${bytesReceived}`);
-    resetBuffer();
-    return;
-  }
-
-  if (bytesReceived === expectedLength + 7) {
-    if (validateChecksum()) {
-      processData(bmsBuffer);
-    } else {
-      console.error(`Checksum mismatch: ${getChecksum()}`);
-    }
-    resetBuffer();
-  }
+function concatenateUint8Arrays(a, b) {
+  const result = new Uint8Array(a.length + b.length);
+  result.set(a);
+  result.set(b, a.length);
+  return result;
 }
-
-// Helpers
-function appendData(data) {
-  const newBuffer = new Uint8Array(bytesReceived + data.length);
-  newBuffer.set(bmsBuffer);
-  newBuffer.set(data, bytesReceived);
-  bmsBuffer = newBuffer;
-  bytesReceived += data.length;
-}
-
-function validateChecksum() {
-  const dataLength = bmsBuffer[3];
-  let checksum = 0x10000;
-  for (let i = 0; i <= dataLength; i++) checksum -= bmsBuffer[i + 3];
-  checksum &= 0xFFFF;
-
-  const received = (bmsBuffer[dataLength + 4] << 8) | bmsBuffer[dataLength + 5];
-  return checksum === received;
-}
-
-function getChecksum() {
-  const dataLength = bmsBuffer[3];
-  return {
-    received: (bmsBuffer[dataLength + 4] << 8) | bmsBuffer[dataLength + 5],
-    calculated: (() => {
-      let sum = 0x10000;
-      for (let i = 0; i <= dataLength; i++) sum -= bmsBuffer[i + 3];
-      return sum & 0xFFFF;
-    })()
-  };
-}
-
-function resetBuffer() {
-  bmsBuffer = new Uint8Array(0);
-  bytesReceived = 0;
-}
-
-
-function appendBmsPacket(data) {
-  if (data.length + bmsDataLengthReceived >= BMS_MAX_DATA_CAPACITY) { return false; } // Превышен максимальный размер буфера
-  for (let i = 0; i < data.length; i++) { bmsDataReceived[bmsDataLengthReceived++] = data[i]; }  // Добавляем данные в буфер
-  return true;
-}
-
-function getIsChecksumValidForReceivedData(data) {
-  const checksumIndex = data[3] + 4; // Индекс контрольной суммы
-  const receivedChecksum = data[checksumIndex] * 256 + data[checksumIndex + 1]; // Полученная контрольная сумма
-  const calculatedChecksum = getChecksumForReceivedData(data); // Вычисленная контрольная сумма
-  return receivedChecksum === calculatedChecksum;
-}
-
-function getChecksumForReceivedData(data) {
-  let checksum = 0x10000; // Начальное значение контрольной суммы
-  const dataLengthProvided = data[3]; // Длина данных
-  for (let i = 0; i < dataLengthProvided + 1; i++) { checksum -= data[i + 3]; } // Вычитаем каждый байт данных
-  return checksum & 0xffff; // Возвращаем 16-битную контрольную сумму
-}
-
 
 function processData(data) {
   // console.log('Incoming data:',[...new Uint8Array(data)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
   // if (lastCommand === data[1]) console.log('Command much');
-  console.log('BMS Data Received:', [...data]);
 
   if (data[1] === 0x00) {
     console.log('Enter EEPROM read');
@@ -400,10 +310,8 @@ function processData(data) {
     let i = 0;
     const registerLength = EEPROM_REGISTERS.length
     let intervalId = setInterval(function () {
-      if (i === registerLength - 1) {
-        clearInterval(intervalId);
-      }
-      readEEPROM(characteristic_tx, EEPROM_REGISTERS[i]);
+      if (i === registerLength - 1) { clearInterval(intervalId); }
+      requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([0xA5]), register: new Uint8Array([EEPROM_REGISTERS[i]]) }).then((data) => { processData(data); });
       i++;
     }, 200);
 
@@ -461,7 +369,7 @@ function processData(data) {
 
     BMSMain.power = parseFloat(power.toFixed(2));
 
-
+    console.log('BMSMain:', BMSMain);
     mainInfoDisplay.update(BMSMain)
 
     saveBLEData({
@@ -471,8 +379,6 @@ function processData(data) {
       residualCapacity: BMSMain.residualCapacity,
       temperature: BMSMain.temperature,
     });
-    // const customEvent = new CustomEvent('myCustomEvent', { detail: BMSMain });
-    // document.dispatchEvent(customEvent);
   }
 
   if (data[1] === 0x04) {
@@ -581,19 +487,19 @@ function addChecksumToCommand(bytes) {
   const isReadCommand = bytes[1] === 0xA5;
 
   if (!isWriteCommand && !isReadCommand) {
-    throw new Error('Invalid command type (second byte should be 0x5A or 0xA5)');
+    throw new Error('Invalid command type (second byte should be 0x5A or 0xA5). Got: ' + bytes[1].toString(16));
   }
 
-  const minLength = isWriteCommand ? 5 : 4; // Для записи минимум 5 байт, для чтения - 4
-  if (bytes.length < minLength) {
-    throw new Error(`Command too short, expected at least ${minLength} bytes`);
-  }
+  // const minLength = isWriteCommand ? 5 : 4; // Для записи минимум 5 байт, для чтения - 4
+  // if (bytes.length < minLength) {
+  //   throw new Error(`Command too short, expected at least ${minLength} bytes`);
+  // }
 
   let sum = 0;
 
   if (isWriteCommand) {
     // Для команд записи: суммируем все байты после заголовка (DD 5A)
-    // Обычно это: регистр (1 байт) + длина (1 байт) + данные (N байт)
+    // регистр (1 байт) + длина (1 байт) + данные (N байт)
     for (let i = 2; i < bytes.length; i++) {
       sum += bytes[i];
     }
@@ -615,7 +521,7 @@ function addChecksumToCommand(bytes) {
   result.set(bytes, 0); // Копируем исходную команду
   result[bytes.length] = chkHigh;
   result[bytes.length + 1] = chkLow;
-  result[bytes.length + 2] = 0x77; // Конечный байт
+  result[bytes.length + 2] = 0x77;
 
   return result;
 }
@@ -649,6 +555,9 @@ function eepromRead(response) {
     0x34: 'cap_40',
     0x35: 'cap_20',
     0x13: 'cap_0',
+    0x10: 'design_cap',
+    0x11: 'cycle_cap',
+    0x17: 'cycle_cnt',
   };
 
   const result = { register: registers[register] };
@@ -669,145 +578,39 @@ function eepromRead(response) {
       }
       break;
 
+    case 0x10: // design_cap
+    case 0x11: // cycle_cap
+      result[registers[register]] = data * 0.01;  // Записываем по имени регистра
+      break;
+
+    case 0x17: // cycle_cnt
+      result[registers[register]] = data;
+      break;
+
     case 0x12: // cap_100
     case 0x32: // cap_80
     case 0x33: // cap_60
     case 0x34: // cap_40
     case 0x35: // cap_20
     case 0x13: // cap_0
-      result[registers[register]] = data * 0.01;  // Записываем по имени регистра
+      result[registers[register]] = data * 0.001;
       break;
 
     default:
       result.value = data;
   }
-
-  console.log('eepromRead result:', result);
   return result;
 }
 
 
-// function eepromWrite(data, characteristic_tx) {
-//   if (!data) throw new Error('(!) data is empty');
-//   if (!characteristic_tx) throw new Error('(!) characteristic_tx is empty');
-
-//   let command = [0xDD, 0x5A];
-
-//   const registers = {
-//     func_config: 0x2D,
-//     ntc_config: 0x2E,
-//     cap_100: 0x12,
-//     cap_80: 0x32,
-//     cap_60: 0x33,
-//     cap_40: 0x34,
-//     cap_20: 0x35,
-//     cap_0: 0x13
-//   }
-
-//   switch (Object.keys(data)[0]) {
-//     case 'chargeMosfet':
-//     case 'dischargeMosfet': {
-//       const mosfetType = Object.keys(data)[0]; // 'chargeMosfet' или 'dischargeMosfet'
-//       const newState = data[mosfetType]; // true/false - новое состояние
-
-//       // Получаем текущие состояния
-//       let currentCharge = (BMSMain.FET & 0x01) !== 0;
-//       let currentDischarge = (BMSMain.FET & 0x02) !== 0;
-
-//       // Обновляем нужное состояние
-//       if (mosfetType === 'chargeMosfet') {
-//         currentCharge = newState;
-//       } else {
-//         currentDischarge = newState;
-//       }
-
-//       // Определяем команду на основе комбинации состояний
-//       let commandIndex;
-//       if (currentCharge && currentDischarge) {
-//         console.log('Both MOSFETs are ON');
-//         commandIndex = 0;
-//       } else if (!currentCharge && currentDischarge) {
-//         console.log('Only Discharge MOSFET is ON');
-//         commandIndex = 1;
-//       } else if (currentCharge && !currentDischarge) {
-//         console.log('Only Charge MOSFET is ON');
-//         commandIndex = 2;
-//       } else {
-//         console.log('Both MOSFETs are OFF');
-//         commandIndex = 3;
-//       }
-
-//       command = bms_mosfet_write[commandIndex];
-//       break;
-//     }
-
-//     case 'eepromMode':
-//       command = data.eepromMode ? EEPROM[0] : EEPROM[2];
-//       console.log('Switch EEPROM mode:', command);
-//       break;
-
-//     case 'func_config': {
-//       if (!isEEPROM) throw new Error('(!) You are NOT in EEPROM mode');
-//       command.push(registers.func_config);
-//       const bitOrder = [
-//         'switch',         // Бит 0 (0x01)
-//         'scrl',           // Бит 1 (0x02)
-//         'balance_en',     // Бит 2 (0x04)
-//         'chg_balance_en', // Бит 3 (0x08)
-//         'led_en',         // Бит 4 (0x10)
-//         'led_num'         // Бит 5 (0x20)
-//       ];
-
-//       let outputData = 0;
-//       bitOrder.forEach((key, index) => {
-//         if (data.func_config[key]) {
-//           outputData |= (1 << index); // Устанавливаем бит в 1, если значение true
-//         }
-//       });
-
-//       command.push(0x02, outputData, 0x0);
-//       break;
-//     }
-
-//     case 'ntc_config': {
-//       if (!isEEPROM) throw new Error('(!) You are NOT in EEPROM mode');
-//       command.push(registers.ntc_config);
-
-//       let outputData = 0;
-//       for (let i = 0; i < 8; i++) {
-//         const ntcKey = `ntc${i + 1}`;
-//         if (data.ntc_config[ntcKey]) {
-//           outputData |= (1 << i); // Устанавливаем бит, если NTC включен
-//         }
-//       }
-//       command.push(0x02, outputData, 0x0);
-//       break;
-//     }
-
-//     default:
-//       console.log('Unknown command:', data);
-//       return;
-//   }
-
-
-//   const array = Uint8Array.from(command);
-//   console.log('Uint8Array.from(command): ', [...array].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
-//   const verifiedData = addChecksumToCommand(Uint8Array.from(command));
-//   console.log('[WRITE] To EEPROM: ', [...new Uint8Array(verifiedData)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
-
-//   try {
-//     characteristic_tx.writeValue(verifiedData);
-//     console.log('Successfully');
-//   } catch (error) {
-//     console.error('Error sending command:', error);
-//   }
-// }
-
-async function eepromWrite(data, characteristic_tx) {
+function eepromWrite(data) {
   if (!data) throw new Error('(!) data is empty');
-  if (!characteristic_tx) throw new Error('(!) characteristic_tx is empty');
 
-  let command = [0xDD, 0x5A];
+  let command = [0x5A];
+
+  const EEPROM_ENTER = [0x00, 0x02, 0x56, 0x78];
+  const EEPROM_EXIT_WITH_SAVE = [0x01, 0x02, 0x28, 0x28];
+  const EEPROM_EXIT_WITHOUT_SAVE = [0x01, 0x02, 0x00, 0x00];
 
   const registers = {
     func_config: 0x2D,
@@ -821,51 +624,51 @@ async function eepromWrite(data, characteristic_tx) {
   };
 
   const dataKey = Object.keys(data)[0];
+  const dataValue = Object.values(data)[0];
+
+  // 0xDD, 0x5A, 0xE1, 0x2, 0x0, 0x3 ALL OFF
+  // 0xDD, 0x5A, 0xE1, 0x2, 0x0, 0x2 CHARGE ON
+  // 0xDD, 0x5A, 0xE1, 0x2, 0x0, 0x1 DISCARGE ON
+  // 0xDD, 0x5A, 0xE1, 0x2, 0x0, 0x0 ALL ON
 
   switch (dataKey) {
-    case 'chargeMosfet':
-    case 'dischargeMosfet': {
-      const mosfetType = dataKey;
-      const newState = data[mosfetType];
 
-      // Получаем текущие состояния
-      let currentCharge = (BMSMain.FET & 0x01) !== 0;
-      let currentDischarge = (BMSMain.FET & 0x02) !== 0;
-
-      // Обновляем нужное состояние
-      if (mosfetType === 'chargeMosfet') {
-        currentCharge = newState;
-      } else {
-        currentDischarge = newState;
-      }
-
-      // Определяем команду
-      let commandIndex;
-      if (currentCharge && currentDischarge) {
-        console.log('Both MOSFETs are ON');
-        commandIndex = 0;
-      } else if (!currentCharge && currentDischarge) {
-        console.log('Only Discharge MOSFET is ON');
-        commandIndex = 1;
-      } else if (currentCharge && !currentDischarge) {
-        console.log('Only Charge MOSFET is ON');
-        commandIndex = 2;
-      } else {
-        console.log('Both MOSFETs are OFF');
-        commandIndex = 3;
-      }
-
-      command = bms_mosfet_write[commandIndex];
+    case 'chargeMosfet': {
+      console.log('Switching chargeMosfet:', dataValue);
+      const currentDischargeState = (BMSMain.FET & 0x01) === 1;
+      const newChargeState = dataValue ? 0x00 : 0x1;
+      const finalState = newChargeState | (currentDischargeState << 1);
+      command.push(0xE1, 0x02, 0x00, finalState);
       break;
     }
 
-    case 'eepromMode':
+    case 'dischargeMosfet': {
+      console.log('Switching dischargeMosfet:', dataValue);
+      const currentChargeState = (BMSMain.FET & 0x02) === 2;
+      const newDischargeState = dataValue ? 0x0 : 0x1;
+      const finalState = currentChargeState | (newDischargeState << 1);
+      command.push(0xE1, 0x02, 0x00, finalState);
+      break;
+    }
+
+    case 'eepromMode': {
+
       if (typeof data.eepromMode !== 'boolean') {
         throw new Error('eepromMode must be boolean');
       }
-      command = data.eepromMode ? EEPROM[0] : EEPROM[2];
+
+      if (data.eepromMode) { command.push(...EEPROM_ENTER); }
+      else {
+        if (isEEPROMChanged) {
+          command.push(...EEPROM_EXIT_WITH_SAVE);
+        } else {
+          command.push(...EEPROM_EXIT_WITHOUT_SAVE);
+        }
+      }
+
       console.log('Switch EEPROM mode:', command);
       break;
+    }
 
     case 'func_config': {
       if (!isEEPROM) throw new Error('(!) You are NOT in EEPROM mode');
@@ -890,8 +693,6 @@ async function eepromWrite(data, characteristic_tx) {
         }
       });
 
-      const writeCmd = addChecksumToCommand(new Uint8Array([0xDD, 0x5A, 0x2D, 0x02, (outputData >> 8) & 0xFF, outputData & 0xFF]));
-
       command.push(0x02, (outputData >> 8) & 0xFF, outputData & 0xFF);
       break;
     }
@@ -907,9 +708,7 @@ async function eepromWrite(data, characteristic_tx) {
 
       for (let i = 0; i < 8; i++) {
         const ntcKey = `ntc${i + 1}`;
-        if (data.ntc_config[ntcKey]) {
-          outputData |= (1 << i);
-        }
+        if (data.ntc_config[ntcKey]) { outputData |= (1 << i); }
       }
 
       command.push(0x02, (outputData >> 8) & 0xFF, outputData & 0xFF);
@@ -920,36 +719,7 @@ async function eepromWrite(data, characteristic_tx) {
       throw new Error(`Unknown command: ${dataKey}`);
   }
 
-  const array = Uint8Array.from(command);
-  console.log('Command bytes:', [...array].map(b => b.toString(16).padStart(2, '0')).join(' ').toUpperCase());
+  return Uint8Array.from(command);;
 
-  try {
-    const verifiedData = addChecksumToCommand(array);
-    console.log('Verified data:', [...new Uint8Array(verifiedData)].map(b => b.toString(16).padStart(2, '0')).join(' ').toUpperCase());
-
-    await characteristic_tx.writeValue(verifiedData);
-    console.log('Command sent successfully');
-  } catch (error) {
-    console.error('Error sending command:', error);
-    throw error;
-  }
 }
-
-
-async function readEEPROM(characteristic_tx, register) {
-  if (!isEEPROM) throw new Error('(!) You are NOT in EEPROM mode');
-  if (typeof register !== 'number') throw new Error('(!) register must be a number');
-
-  const command = new Uint8Array([0xDD, 0xA5, register, 0x00]);
-  const commandWithChecksum = addChecksumToCommand(command);
-
-  try {
-    console.log('[Read] To EEPROM: ', [...commandWithChecksum].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
-    await characteristic_tx.writeValue(commandWithChecksum);
-
-  } catch (error) {
-    console.error('Error sending command:', error);
-  }
-}
-
 

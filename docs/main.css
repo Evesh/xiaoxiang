@@ -14076,21 +14076,9 @@ textarea.form-control-lg {
 }
 @font-face {
   font-family: "Roboto";
-  src: local("Roboto BoldItalic"), local("Roboto-BoldItalic"), url(430e4278f26f3ee9f717.ttf) format("truetype");
-  font-weight: bold;
-  font-style: italic;
-}
-@font-face {
-  font-family: "Roboto";
   src: local("Roboto Light"), local("Roboto-Light"), url(8f977c8591803dd0978f.ttf) format("truetype");
   font-weight: 300;
   font-style: normal;
-}
-@font-face {
-  font-family: "Roboto";
-  src: local("Roboto LightItalic"), local("Roboto-LightItalic"), url(0f744c545bd18664e5b6.ttf) format("truetype");
-  font-weight: 300;
-  font-style: italic;
 }
 @font-face {
   font-family: "Roboto";
@@ -14098,15 +14086,17 @@ textarea.form-control-lg {
   font-weight: 500;
   font-style: normal;
 }
-@font-face {
-  font-family: "Roboto";
-  src: local("Roboto MediumItalic"), local("Roboto-MediumItalic"), url(a4e38056cca427132ea4.ttf) format("truetype");
-  font-weight: 500;
-  font-style: italic;
-}
 body {
   min-width: 769px;
   font-family: "Roboto", sans-serif;
+}
+
+#customRange3 {
+  opacity: 0.5 !important;
+}
+#customRange3:hover {
+  cursor: pointer;
+  opacity: 1 !important;
 }
 
 .form-check-input:checked {
@@ -14116,10 +14106,12 @@ body {
 
 .clickable {
   cursor: pointer;
+  width: 150px;
+  height: 75px;
   transition: transform 0.2s;
 }
 .clickable:hover {
-  transform: scale(1.05);
+  transform: translateX(-3px);
 }
 
 .flash-text {

@@ -1,6 +1,36 @@
 import * as bootstrap from 'bootstrap';
 import ApexCharts from 'apexcharts'
 
+
+
+
+const capacity_aray_keys = [4.15, 4.00, 3.80, 3.60, 3.30];
+
+let capacity_keys = {
+    4.15: 100,
+    4.00: 80,
+    3.80: 60,
+    3.60: 40,
+    3.30: 20,
+}
+
+const capacity_colors = {
+    100: 'high',
+    80: 'high',
+    60: 'medium',
+    40: 'medium',
+    20: 'low',
+    0: 'low'
+}
+
+const capacity = {
+    4.15: 'high',
+    4.00: 'high',
+    3.80: 'medium',
+    3.60: 'medium',
+    3.30: 'low'
+}
+
 export class BatteryDisplay {
     constructor(numberOfCells, containerId) {
         this.numberOfCells = numberOfCells;
@@ -11,10 +41,12 @@ export class BatteryDisplay {
         this.voltageDifference = 0;
         this.batteryMaxVoltage = 4.10;
         this.batteryMinVoltage = 3.10;
-
         this.init();
-    }
 
+        this.max_cell_voltage = 4.2;
+        this.medium_cell_voltage = 3.8;
+        this.min_cell_voltage = 3.3;
+    }
 
 
     init() {
@@ -23,29 +55,29 @@ export class BatteryDisplay {
         options.classList.add('controls-container', 'row', 'row-cols-3', 'justify-content-around', 'pb-5');
 
         options.innerHTML = `
-            <div class="col d-flex flex-column align-items-center justify-content-center shadow rounded" id="max-voltage" style="width: 150px; height: 75px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center bg-body-tertiary shadow rounded" id="max-voltage" style="width: 150px; height: 75px;">
                 <div class="title text-muted">Maximal</div>
                     <div class="value fs-5">
                     <i class="bi bi-caret-down-fill opacity-25"></i>
-                    <span>0.00 V</span>
+                    <span>0.00</span><span>V</span>
                     </div>
                 </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center shadow rounded" id="min-voltage" style="width: 150px; height: 75px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center bg-body-tertiary shadow rounded" id="min-voltage" style="width: 150px; height: 75px;">
                 <div class="title text-muted">Minimal</div>
                     <div class="value fs-5">
                     <i class="bi bi-caret-down-fill opacity-25"></i>
-                    <span>0.00 V</span>
+                    <span>0.00</span><span>V</span>
                     </div>
                 </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center shadow rounded" id="voltage-difference" style="width: 150px; height: 75px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center bg-body-tertiary shadow rounded" id="voltage-difference" style="width: 150px; height: 75px;">
                 <div class="title text-muted">Difference</div>
                     <div class="value fs-5">
                     <i class="bi bi-caret-down-fill opacity-25"></i>
-                    <span>0.00 V</span>
+                    <span>0.00</span><span>V</span>
                     </div>
                 </div>
             </div>`;
@@ -104,24 +136,20 @@ export class BatteryDisplay {
             const voltage = parseFloat(cells[i]);
 
             if (!isNaN(voltage)) {
-                batteryElement.textContent = `${voltage.toFixed(3)}V`;
-                const level = Math.max(0, Math.min((voltage - this.batteryMinVoltage) / (this.batteryMaxVoltage - this.batteryMinVoltage), 1));
+                batteryElement.textContent = voltage.toFixed(3);
+                const level = Math.max(0, Math.min((voltage - this.min_cell_voltage) / (this.max_cell_voltage - this.min_cell_voltage), 1));
 
                 bars.forEach((bar, index) => {
                     bar.classList.forEach(className => {
                         if (className !== 'bar') { bar.classList.remove(className); }
                     })
 
-                    // bar.classList.add(index < Math.floor(level * bars.length) ? level >= 0.5 ? 'high' : level >= 0.2 ? 'medium' : 'low' : 'empty');
-
                     if (index < Math.floor(level * bars.length)) {
-                        bar.classList.add(level >= 0.7 ? 'high' : level >= 0.3 ? 'medium' : 'low');
+                        bar.classList.add(voltage >= this.medium_cell_voltage ? 'high' : voltage >= this.min_cell_voltage ? 'medium' : 'low');
                     } else {
                         bar.classList.add('empty');
                     }
-                });
-
-                document.getElementById(`battery-container-${i}`).style.boxShadow = 'none';
+                });;
             } else {
                 console.error('Invalid cell value:', cells[i]);
                 batteryElement.textContent = 'N/A';
@@ -130,8 +158,8 @@ export class BatteryDisplay {
         }
 
         // Подсветка min/max
-        document.getElementById(`battery-container-${minVoltageCellNumber}`).style.boxShadow = '0px 0px 5px 5px rgba(255, 0, 0, 0.37)';
-        document.getElementById(`battery-container-${maxVoltageCellNumber}`).style.boxShadow = '0px 0px 5px 5px rgba(219, 0, 198, 0.37)';
+        document.getElementById(`battery-container-${minVoltageCellNumber}`).style.backgroundColor = 'coral';
+        document.getElementById(`battery-container-${maxVoltageCellNumber}`).style.boxShadow = 'red';
 
         // Обновление значений с анимацией
         const updateValueWithFlash = (element, newValue) => {
@@ -142,7 +170,7 @@ export class BatteryDisplay {
 
             if (spanValue !== newValue) {
                 this.#applyFlash(span);
-                span.textContent = `${parseFloat(newValue.toFixed(3))}V`;
+                span.textContent = newValue.toFixed(3);
 
                 if (newValue > spanValue) {
                     icon.classList.add('bi-caret-up-fill');
@@ -155,10 +183,11 @@ export class BatteryDisplay {
                 }
                 icon.classList.remove('opacity-25');
                 icon.classList.add('opacity-100');
+                setTimeout(() => {
+                    icon.classList.remove('opacity-100');
+                    icon.classList.add('opacity-25');
+                }, 1000);
 
-            } else {
-                icon.classList.remove('opacity-100');
-                icon.classList.add('opacity-25');
             }
         };
 
@@ -188,6 +217,11 @@ export class BatteryDisplay {
         this.#updateBalancing(balancing);
     }
 
+
+    #nearestValue(arr, val) {
+        return arr.reduce((nearest, num) => Math.abs(num - val) >= Math.abs(nearest - val) && nearest < num ? nearest : num);
+    }
+
     #updateBalancing(balancingCells) {
         if (!this.numberOfCells) { return; }
 
@@ -197,10 +231,10 @@ export class BatteryDisplay {
 
             if (balancingCells.includes(i)) {
                 balancingElement.classList.remove('invisible');
-                balancingElement.classList.add('blink'); // Добавляем анимацию мигания
+                balancingElement.classList.add('blink');
             } else {
                 balancingElement.classList.add('invisible');
-                balancingElement.classList.remove('blink'); // Убираем анимацию
+                balancingElement.classList.remove('blink');
             }
         }
     }
@@ -241,8 +275,6 @@ export class BatteryDisplay {
 }
 
 
-
-
 export class MainInfoDisplay {
     constructor(containerId) {
         if (!containerId) { throw new Error('containerId is not defined'); }
@@ -277,9 +309,21 @@ export class MainInfoDisplay {
     }
 
     update(data) {
-        console.log(data);
+        // console.log(data);
         this.#updateProgressBar(data);
         this.#updateControls(data);
+        this.#updateChart(data);
+    }
+
+    #updateChart(data) {
+        if (this.chart) {
+
+            this.chart.updateSeries([{
+                name: 'totalVoltage',
+                data: data.voltage
+            }]);
+
+        }
     }
 
     updateEEPROM(data) {
@@ -304,7 +348,7 @@ export class MainInfoDisplay {
                 console.error(`Element not found: input#${key}`);
             }
         }
-        
+
     }
 
     clearEEPROMswitches() {
@@ -396,37 +440,37 @@ export class MainInfoDisplay {
         controlsContainer.classList.add('controls-container', 'pt-3');
         controlsContainer.innerHTML = `
 
-        <div class="row row-cols-3 justify-content-around py-3">
+        <div class="row row-cols-4 justify-content-around py-3">
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded text-muted clickable" id="voltage_" name="totalVoltage" style="width: 160px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center shadow rounded bg-body-tertiary text-muted clickable" id="voltage_" name="totalVoltage">
                     <div class="title">Voltage</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
-                        <span id="voltage" class="fw-medium">0.00 V</span>
+                        <span id="voltage" class="fw-medium">0.00</span><span class="fw-medium">V</span>
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded text-muted clickable" id="current_" name="current" style="width: 160px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center shadow rounded bg-body-tertiary text-muted clickable" id="current_" name="current">
                     <div class="title text-muted">Current</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
-                        <span id="current" class="fw-medium">0.00 A</span>
+                        <span id="current" class="fw-medium">0.00</span><span class="fw-medium">A</span>
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded text-muted clickable" id="power_" name="power" style="width: 160px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center shadow rounded bg-body-tertiary text-muted clickable" id="power_" name="power">
                     <div class="title text-muted">Power</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
-                        <span id="power" class="fw-medium">0.00 W</span>
+                        <span id="power" class="fw-medium">0.00</span><span class="fw-medium">W</span>
                     </div>
             </div>
 
-            <div class="col d-flex flex-column align-items-center justify-content-center align-items-center justify-content-center shadow rounded text-muted clickable" id="capacity_" name="residualCapacity" style="width: 160px; height: 90px;">
+            <div class="col d-flex flex-column align-items-center justify-content-center shadow rounded bg-body-tertiary text-muted clickable" id="capacity_" name="residualCapacity">
                     <div class="title text-muted">Capacity</div>
                     <div class="value fs-4">
                         <i class="bi bi-caret-down-fill opacity-25"></i>
-                        <span id="capacity" class="fw-medium">0.00 Ah</span>
+                        <span id="capacity" class="fw-medium">0.00</span><span class="fw-medium">Ah</span>
                     </div>
             </div>
 
@@ -438,7 +482,7 @@ export class MainInfoDisplay {
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
-                    <span class="temp-sensor fs-4">0 °C</span>
+                    <span class="temp-sensor fs-4">0</span><span class="fs-4"> °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
@@ -446,7 +490,7 @@ export class MainInfoDisplay {
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
-                    <span class="temp-sensor fs-4">0 °C</span>
+                    <span class="temp-sensor fs-4">0</span><span class="fs-4"> °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
@@ -454,7 +498,7 @@ export class MainInfoDisplay {
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
-                    <span class="temp-sensor fs-4">0 °C</span>
+                    <span class="temp-sensor fs-4">0</span><span class="fs-4"> °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
@@ -462,7 +506,7 @@ export class MainInfoDisplay {
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
-                    <span class="temp-sensor fs-4">0 °C</span>
+                    <span class="temp-sensor fs-4">0</span><span class="fs-4"> °C</span>
                 </div>
             </div>
         </div>
@@ -561,21 +605,15 @@ export class MainInfoDisplay {
 
 
         controlsContainer.querySelector('#switchChargeMosfet').addEventListener('change', () => {
-            this.callback({
-                chargeMosfet: controlsContainer.querySelector('#switchChargeMosfet').checked,
-            });
+            this.callback({ chargeMosfet: controlsContainer.querySelector('#switchChargeMosfet').checked, });
         });
 
         controlsContainer.querySelector('#switchDisChargeMosfet').addEventListener('change', () => {
-            this.callback({
-                dischargeMosfet: controlsContainer.querySelector('#switchDisChargeMosfet').checked
-            });
+            this.callback({ dischargeMosfet: controlsContainer.querySelector('#switchDisChargeMosfet').checked });
         });
 
         controlsContainer.querySelector('#switchEepromMode').addEventListener('change', () => {
-            this.callback({
-                eepromMode: controlsContainer.querySelector('#switchEepromMode').checked
-            });
+            this.callback({ eepromMode: controlsContainer.querySelector('#switchEepromMode').checked });
         });
 
 
@@ -634,7 +672,7 @@ export class MainInfoDisplay {
                             },
                             series: [{
                                 name: paramName,
-                                data: paramName.includes("temperature-sensor-") ? loadedData.map(item => item.bleData.temperature[parseInt(paramName.substring(paramName.length - 1))]) : loadedData.map(item => item.bleData[paramName].toFixed(2))
+                                data: paramName.includes("temperature-sensor-") ? loadedData.map(item => item.bleData.temperature[parseInt(paramName.substring(paramName.length - 1))]) : loadedData.map(item => item.bleData[paramName].toFixed(2)),
                             }],
                             xaxis: {
                                 categories: loadedData.map(item => new Date(item.timestamp).toLocaleTimeString())
@@ -669,14 +707,14 @@ export class MainInfoDisplay {
         switchChargeMosfet.checked = chargeMosfetState;
         switchDisChargeMosfet.checked = disChargeMosfetState;
 
-        const updateValueWithFlash = (element, newValue, query) => {
+        const updateValueWithFlash = (element, newValue) => {
             const valueDiv = element.querySelector('.value');
             const icon = valueDiv.querySelector('i');
             const span = valueDiv.querySelector('span');
             const spanValue = parseFloat(span.textContent);
 
             if (spanValue !== newValue) {
-                span.textContent = `${parseFloat(newValue.toFixed(3))} ${query}`;
+                span.textContent = newValue.toFixed(2);
                 this.#applyFlash(span);
 
                 if (newValue > spanValue) {
@@ -698,16 +736,16 @@ export class MainInfoDisplay {
         };
 
 
-        updateValueWithFlash(document.getElementById('voltage_'), voltage, 'V');
-        updateValueWithFlash(document.getElementById('current_'), current, 'A');
-        updateValueWithFlash(document.getElementById('power_'), power, 'W');
-        updateValueWithFlash(document.getElementById('capacity_'), capacity, 'Ah');
+        updateValueWithFlash(document.getElementById('voltage_'), voltage);
+        updateValueWithFlash(document.getElementById('current_'), current);
+        updateValueWithFlash(document.getElementById('power_'), power);
+        updateValueWithFlash(document.getElementById('capacity_'), capacity);
 
 
         for (let i = 0; i < data.numberOfTemperatureSensors; i++) {
             const temperatureSensor = this.controls.querySelector(`#temperature-sensor-${i}`);
             const span = temperatureSensor.querySelector('span');
-            span.textContent = `${data.temperature[i]} °C`;
+            span.textContent = data.temperature[i];
             if (temperatureSensor.classList.contains('opacity-25')) temperatureSensor.classList.remove('opacity-25');
         }
 
