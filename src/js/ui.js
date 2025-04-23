@@ -2,59 +2,142 @@ import * as bootstrap from 'bootstrap';
 import ApexCharts from 'apexcharts'
 
 
+export class Progress {
+    constructor() {
+        this.#render();
+    }
 
+    #render() {
+        this.modal = document.createElement('div');
+        this.modal.classList.add('modal', 'fade');
+        this.modal.setAttribute('id', 'modal-progress');
+        this.modal.setAttribute('data-bs-backdrop', 'static');
+        this.modal.setAttribute('data-bs-keyboard', 'false');
+        this.modal.setAttribute('tabindex', '-1');
+        this.modal.setAttribute('aria-labelledby', 'staticBackdropLabel');
+        this.modal.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(this.modal);
 
-const capacity_aray_keys = [4.15, 4.00, 3.80, 3.60, 3.30];
+        this.dialog = document.createElement('div');
+        this.dialog.classList.add('modal-dialog', 'modal-dialog-centered');
+        this.modal.appendChild(this.dialog);
 
-let capacity_keys = {
-    4.15: 100,
-    4.00: 80,
-    3.80: 60,
-    3.60: 40,
-    3.30: 20,
+        this.content = document.createElement('div');
+        this.content.classList.add('modal-content');
+        this.dialog.appendChild(this.content);
+
+        this.body = document.createElement('div');
+        this.body.classList.add('modal-body', 'text-center');
+        this.content.appendChild(this.body);
+
+        this.progressValue = document.createElement('div');
+        this.progressValue.classList.add('progress-value');
+        this.body.appendChild(this.progressValue);
+
+        this.progress = document.createElement('div');
+        this.progress.classList.add('progress');
+        this.progress.setAttribute('role', 'progressbar');
+        this.progress.setAttribute('aria-label', 'Info example');
+        this.progress.setAttribute('aria-valuenow', '0');
+        this.progress.setAttribute('aria-valuemin', '0');
+        this.progress.setAttribute('aria-valuemax', '100');
+        this.body.appendChild(this.progress);
+
+        this.bar = document.createElement('div');
+        this.bar.classList.add('progress-bar', 'bg-info');
+        this.bar.setAttribute('style', 'width: 0%');
+        this.progress.appendChild(this.bar);
+
+        this.bootstrapModal = new bootstrap.Modal(this.modal, {})
+    }
+
+    show() {
+        this.bootstrapModal.show();
+    }
+
+    setProgress(value, text = '') {
+        this.bar.setAttribute('style', `width: ${value}%`);
+        // this.progressValue.textContent = `${value}%`;
+        this.bar.textContent = text;
+    }
+
+    hide() {
+        this.bootstrapModal.hide();
+    }
+
+    destroy() {
+        this.modal.remove();
+    }
 }
 
-const capacity_colors = {
-    100: 'high',
-    80: 'high',
-    60: 'medium',
-    40: 'medium',
-    20: 'low',
-    0: 'low'
-}
+export class BMS {
+    constructor(containerId) {
 
-const capacity = {
-    4.15: 'high',
-    4.00: 'high',
-    3.80: 'medium',
-    3.60: 'medium',
-    3.30: 'low'
-}
-
-export class BatteryDisplay {
-    constructor(numberOfCells, containerId) {
-        this.numberOfCells = numberOfCells;
+        if (!containerId) { throw new Error('containerId is not defined'); }
         this.containerId = containerId;
         this.container = document.getElementById(containerId);
+        if (!this.container) { throw new Error('Container not found'); }
+
+        this.mainContainer = document.createElement('div');
+        this.mainContainer.classList.add('main-info', 'shadow', 'p-3', 'mb-3', 'rounded');
+
+        this.batteryContainer = document.createElement('div');
+        this.batteryContainer.classList.add('battery-info', 'shadow', 'p-3', 'mb-3', 'rounded');
+
+        this.callback = null;
+        this.chart = null;
+        this.modalElement = document.getElementById('graphics');
+
+        this.numberOfCells = 0;
         this.minVoltage = 0;
         this.maxVoltage = 0;
         this.voltageDifference = 0;
         this.batteryMaxVoltage = 4.10;
         this.batteryMinVoltage = 3.10;
-        this.init();
 
         this.max_cell_voltage = 4.2;
         this.medium_cell_voltage = 3.8;
         this.min_cell_voltage = 3.3;
+
+        if (this.modalElement) {
+            this.modal = new bootstrap.Modal(this.modalElement, { keyboard: false })
+            this.modalElement.addEventListener('hidden.bs.modal', event => {
+                if (this.chart) {
+                    this.chart.destroy();
+                }
+            })
+        }
+
+        this.initMain();
+        this.initCells();
     }
 
 
-    init() {
-        this.container.innerHTML = '';
-        const options = document.createElement('div');
-        options.classList.add('controls-container', 'row', 'row-cols-3', 'justify-content-around', 'pb-5');
+    initMain() {
+        this.progressContainer = this.#renderProgressBar();
+        this.mainContainer.appendChild(this.progressContainer);
+        this.controls = this.#renderControls();
+        this.mainContainer.appendChild(this.controls);
+        this.container.appendChild(this.mainContainer);
+    }
 
-        options.innerHTML = `
+    initCells() {
+        if (!this.numberOfCells) { return; }
+
+        this.batteryControls = this.#renderBatteryControls();
+        this.batteryContainer.appendChild(this.batteryControls);
+
+        this.cells = this.#renderCells();
+        this.batteryContainer.appendChild(this.cells);
+
+        this.container.appendChild(this.batteryContainer);
+    }
+
+    #renderBatteryControls() {
+        const batteryControlsContainer = document.createElement('div');
+        batteryControlsContainer.classList.add('battery-controls-container', 'row', 'row-cols-3', 'justify-content-around', 'pb-5');
+
+        batteryControlsContainer.innerHTML = `
             <div class="col d-flex flex-column align-items-center justify-content-center bg-body-tertiary shadow rounded" id="max-voltage" style="width: 150px; height: 75px;">
                 <div class="title text-muted">Maximal</div>
                     <div class="value fs-5">
@@ -81,9 +164,8 @@ export class BatteryDisplay {
                     </div>
                 </div>
             </div>`;
-        this.container.appendChild(options);
 
-        options.querySelectorAll('.box').forEach(box => {
+        batteryControlsContainer.querySelectorAll('.box').forEach(box => {
             box.addEventListener('click', (e) => {
 
                 e.target.classList.add('flash-text');
@@ -93,11 +175,15 @@ export class BatteryDisplay {
 
             });
         });
+
+        return batteryControlsContainer;
+    }
+
+    #renderCells() {
         const batteryRow = document.createElement('div');
         batteryRow.classList.add('row', 'row-cols-3', 'justify-content-between');
         this.container.appendChild(batteryRow);
 
-        // Создаем HTML-код для каждой батареи
         for (let i = 0; i < this.numberOfCells; i++) {
             const batteryHtml = `
           <div class="col p-2 d-flex align-items-center justify-content-center">
@@ -115,13 +201,30 @@ export class BatteryDisplay {
         `;
             batteryRow.insertAdjacentHTML('beforeend', batteryHtml);
         }
+        return batteryRow;
     }
 
-    update(data) {
+
+    setCallback(callback) {
+        this.callback = callback;
+    }
+
+    updateMain(data) {
+        // console.log(data);
+        this.#updateProgressBar(data);
+        this.#updateControls(data);
+        this.#updateChart(data);
+    }
+
+    updateCells(data) {
         const { cell, balancing } = data;
         const cells = cell.map(Number);
 
-        // Расчет значений
+        if (!this.numberOfCells && cells.length) {
+            this.numberOfCells = cells.length;
+            this.initCells();
+        }
+
         this.minVoltage = Math.min(...cells);
         this.maxVoltage = Math.max(...cells);
         this.voltageDifference = parseFloat((this.maxVoltage - this.minVoltage).toFixed(3));
@@ -129,7 +232,6 @@ export class BatteryDisplay {
         const minVoltageCellNumber = cells.indexOf(this.minVoltage);
         const maxVoltageCellNumber = cells.indexOf(this.maxVoltage);
 
-        // Обновление ячеек
         for (let i = 0; i < this.numberOfCells; i++) {
             const batteryElement = document.getElementById(`battery-${i}`);
             const bars = batteryElement.parentElement.querySelectorAll('.bar');
@@ -137,15 +239,14 @@ export class BatteryDisplay {
 
             if (!isNaN(voltage)) {
                 batteryElement.textContent = voltage.toFixed(3);
-                const level = Math.max(0, Math.min((voltage - this.min_cell_voltage) / (this.max_cell_voltage - this.min_cell_voltage), 1));
+                const level = Math.max(0, Math.min((voltage - 2.8) / (4.2 - 2.8), 1));
 
                 bars.forEach((bar, index) => {
-                    bar.classList.forEach(className => {
-                        if (className !== 'bar') { bar.classList.remove(className); }
-                    })
+                    bar.classList.forEach(className => { if (className !== 'bar') { bar.classList.remove(className); } })
 
                     if (index < Math.floor(level * bars.length)) {
-                        bar.classList.add(voltage >= this.medium_cell_voltage ? 'high' : voltage >= this.min_cell_voltage ? 'medium' : 'low');
+                        // bar.classList.add(voltage >= this.medium_cell_voltage ? 'high' : voltage >= this.min_cell_voltage ? 'medium' : 'low');
+                        bar.classList.add(voltage >= this.medium_cell_voltage ? 'high' : voltage >= this.min_cell_voltage ? 'medium' : voltage >= this.min_cell_voltage ? 'low' : 'danger');
                     } else {
                         bar.classList.add('empty');
                     }
@@ -158,10 +259,9 @@ export class BatteryDisplay {
         }
 
         // Подсветка min/max
-        document.getElementById(`battery-container-${minVoltageCellNumber}`).style.backgroundColor = 'coral';
-        document.getElementById(`battery-container-${maxVoltageCellNumber}`).style.boxShadow = 'red';
+        // document.getElementById(`battery-container-${minVoltageCellNumber}`).style.backgroundColor = 'coral';
+        // document.getElementById(`battery-container-${maxVoltageCellNumber}`).style.boxShadow = 'red';
 
-        // Обновление значений с анимацией
         const updateValueWithFlash = (element, newValue) => {
             const valueDiv = element.querySelector('.value');
             const icon = valueDiv.querySelector('i');
@@ -217,11 +317,6 @@ export class BatteryDisplay {
         this.#updateBalancing(balancing);
     }
 
-
-    #nearestValue(arr, val) {
-        return arr.reduce((nearest, num) => Math.abs(num - val) >= Math.abs(nearest - val) && nearest < num ? nearest : num);
-    }
-
     #updateBalancing(balancingCells) {
         if (!this.numberOfCells) { return; }
 
@@ -239,24 +334,17 @@ export class BatteryDisplay {
         }
     }
 
-    #reset() {
-
-    }
-
     #applyValueGlow(element) {
         if (!element) {
             console.error('Element is not defined');
             return;
         }
 
-        // Сбрасываем анимацию
         element.classList.remove('value-glow');
         void element.offsetWidth;
 
-        // Запускаем анимацию
         element.classList.add('value-glow');
 
-        // Автоочистка
         element.addEventListener('animationend', () => {
             element.classList.remove('value-glow');
         }, { once: true });
@@ -272,48 +360,6 @@ export class BatteryDisplay {
             element.classList.remove('flash-text');
         }, { once: true });
     }
-}
-
-
-export class MainInfoDisplay {
-    constructor(containerId) {
-        if (!containerId) { throw new Error('containerId is not defined'); }
-        this.containerId = containerId;
-        this.container = document.getElementById(containerId);
-        this.callback = null;
-        this.chart = null;
-        this.init();
-
-        this.modalElement = document.getElementById('graphics');
-
-        if (this.modalElement) {
-            this.modal = new bootstrap.Modal(this.modalElement, { keyboard: false })
-            this.modalElement.addEventListener('hidden.bs.modal', event => {
-                if (this.chart) {
-                    this.chart.destroy();
-                }
-            })
-        }
-    }
-
-    init() {
-        this.container.innerHTML = ''; // Очищаем контейнер
-        this.progressContainer = this.#renderProgressBar(); // Создаем контейнер для прогресс-бара
-        this.container.appendChild(this.progressContainer); // Добавляем контейнер в DOM
-        this.controls = this.#renderControls();
-        this.container.appendChild(this.controls);
-    }
-
-    setCallback(callback) {
-        this.callback = callback;
-    }
-
-    update(data) {
-        // console.log(data);
-        this.#updateProgressBar(data);
-        this.#updateControls(data);
-        this.#updateChart(data);
-    }
 
     #updateChart(data) {
         if (this.chart) {
@@ -327,7 +373,7 @@ export class MainInfoDisplay {
     }
 
     updateEEPROM(data) {
-        console.log('Data updateEEPROM:', data);
+        console.log('Data from updateEEPROM:', data);
 
         const { register, key, value } = data;
         const block = document.querySelector(`#${register}`);
@@ -396,22 +442,22 @@ export class MainInfoDisplay {
         progress.setAttribute('aria-valuenow', '0');
         progress.setAttribute('aria-valuemin', '0');
         progress.setAttribute('aria-valuemax', '100');
-        progress.style.width = '100%'; // Ширина прогресс-контейнера
+        progress.style.width = '100%';
         progress.style.height = '25px';
 
         const progressBar = document.createElement('div');
         progressBar.classList.add('percents', 'progress-bar', 'bg-info');
-        progressBar.style.width = '0%'; // Начальная ширина прогресс-бара
-        progress.appendChild(progressBar); // Добавляем прогресс-бар в контейнер
+        progressBar.style.width = '0%';
+        progress.appendChild(progressBar);
 
         const progressBarText = document.createElement('div');
         progressBarText.classList.add('badge', 'position-absolute', 'top-50', 'start-50', 'translate-middle', 'text-bg-info', 'text-light', 'border', 'border-2', 'border-light', 'fs-5');
         progressBarText.textContent = '0%';
         progress.appendChild(progressBarText);
 
-        progressContainer.appendChild(progress); // Добавляем прогресс в контейнер
+        progressContainer.appendChild(progress);
 
-        return progressContainer; // Возвращаем контейнер
+        return progressContainer;
     }
 
     #updateProgressBar(data) {
@@ -482,7 +528,7 @@ export class MainInfoDisplay {
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
-                    <span class="temp-sensor fs-4">0</span><span class="fs-4"> °C</span>
+                    <span class="temp-sensor fs-4">0.0</span><span class="fs-4"> °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
@@ -490,7 +536,7 @@ export class MainInfoDisplay {
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
-                    <span class="temp-sensor fs-4">0</span><span class="fs-4"> °C</span>
+                    <span class="temp-sensor fs-4">0.0</span><span class="fs-4"> °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
@@ -498,7 +544,7 @@ export class MainInfoDisplay {
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
-                    <span class="temp-sensor fs-4">0</span><span class="fs-4"> °C</span>
+                    <span class="temp-sensor fs-4">0.0</span><span class="fs-4"> °C</span>
                 </div>
             </div>
             <div class="d-flex align-items-center justify-content-center">
@@ -506,7 +552,7 @@ export class MainInfoDisplay {
                     <i class="bi bi-thermometer-half position-relative fs-3">
                         <i class="bi bi-caret-up-fill position-absolute top-50 start-0 translate-middle" style="font-size: 10px;"></i>
                     </i>
-                    <span class="temp-sensor fs-4">0</span><span class="fs-4"> °C</span>
+                    <span class="temp-sensor fs-4"0.0</span><span class="fs-4"> °C</span>
                 </div>
             </div>
         </div>
@@ -745,7 +791,7 @@ export class MainInfoDisplay {
         for (let i = 0; i < data.numberOfTemperatureSensors; i++) {
             const temperatureSensor = this.controls.querySelector(`#temperature-sensor-${i}`);
             const span = temperatureSensor.querySelector('span');
-            span.textContent = data.temperature[i];
+            span.textContent = data.temperature[i].toFixed(1);
             if (temperatureSensor.classList.contains('opacity-25')) temperatureSensor.classList.remove('opacity-25');
         }
 
@@ -763,14 +809,4 @@ export class MainInfoDisplay {
         }
     }
 
-    #applyFlash(element) {
-        if (!element) {
-            console.error('Element is not defined');
-            return;
-        }
-        element.classList.add('flash-text');
-        element.addEventListener('animationend', () => {
-            element.classList.remove('flash-text');
-        }, { once: true });
-    }
 }

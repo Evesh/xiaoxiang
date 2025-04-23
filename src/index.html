@@ -9,9 +9,11 @@
 
 <body>
 
-  <div class="developer-bar fixed-bottom m-3 shadow-lg p-3 mb-5 bg-body-tertiary rounded" style="height: 50px;width: 300px;">
+  <div class="developer-bar fixed-bottom m-3 shadow-lg p-3 mb-5 bg-body-tertiary rounded"
+    style="height: 50px;width: 300px;">
     <input type="range" class="form-range" min="2.5" max="4.4" step="0.1" id="customRange3">
   </div>
+
 
   <div class="modal fade" id="graphics" tabindex="-1" aria-labelledby="graphics" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
@@ -28,6 +30,7 @@
       </div>
     </div>
   </div>
+
 
   <div class="modal fade" id="settings" tabindex="-1" aria-labelledby="settings" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
@@ -58,13 +61,16 @@
 
           <div class="statistic">
             <div class="input-group">
-              <span>Download statistic</span>
-              <button type="button" class="btn btn-info text-light" id="downloadButton"><i
+              <span>Export statistic</span>
+              <button type="button" class="btn btn-info text-light" id="exportStatisticButton"><i
                   class="bi bi-download"></i></button>
             </div>
+            <div class="input-group">
+              <span>Import statistic</span>
+              <button type="button" class="btn btn-info text-light" id="importStatisticButton"><i
+                  class="bi bi-upload"></i></button>
+            </div>
           </div>
-
-
 
         </div>
         <div class="modal-footer">
@@ -74,7 +80,25 @@
     </div>
   </div>
 
-  <div class="container-sm py-4 px-3">
+
+  <!-- <div class="modal fade" id="exampleModalToggle" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+
+  <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+
+        <div class="modal-body text-center">
+          <div class="progress-value">50%</div>
+          <div class="progress" role="progressbar" aria-label="Info example" aria-valuenow="50" aria-valuemin="0"aria-valuemax="100">
+            <div class="progress-bar bg-info" style="width: 50%"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div> -->
+
+
+  <div class="container-sm py-4 px-3" id="main">
 
     <nav class="navbar bg-body-tertiary">
       <div class="container-fluid">
@@ -105,8 +129,6 @@
       </div>
     </div>
 
-    <div class="main-info shadow p-3 mb-3 rounded" id="main-info-container"></div>
-    <div class="battery-info shadow p-3 mb-3 rounded" id="battery-container"></div>
 
   </div>
 </body>

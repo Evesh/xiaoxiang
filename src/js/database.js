@@ -43,4 +43,8 @@ export function saveBLEData(bleData) {
 
 }
 
+export function importBLEData(data) {
+    localStorage.setItem('bleDataCollection', JSON.stringify(data));
+}
+
 
