@@ -117,7 +117,7 @@ export function eepromRead(response) {
     }
 
     const registerName = registers[register];
-    let value = null;
+    let value = {};
 
     const result = { register: registers[register] };
 
@@ -140,8 +140,10 @@ export function eepromRead(response) {
             break;
 
         case 0x2E:
-            for (let i = 0; i < 8; i++) { value[`ntc${i + 1}`] = !!((data >> i) & 0x01) ? true : false; }
-            result[registers[register]] = value;
+            for (let i = 0; i < 8; i++) { result[`ntc${i + 1}`] = !!((data >> i) & 0x01) ? true : false; }
+            // for (let i = 0; i < 8; i++) { value[`ntc${i + 1}`] = !!((data >> i) & 0x01) ? true : false; }
+            
+            // result[registers[register]] = value;
             break;
 
         case 0x10: // design_cap
@@ -190,13 +192,16 @@ export function eepromRead(response) {
             break;
     }
 
-    updateEepromData(registerName, value)
+    updateEepromData(registerName, result)
         .then(() => console.log('Data updated successfully'))
         .catch(err => console.error('Update failed:', err));
 
-    // console.log('result', result);
+    console.log('result', result);
     return result;
 }
+
+
+
 
 
 export function eepromWrite(data) {

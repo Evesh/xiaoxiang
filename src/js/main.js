@@ -21,20 +21,11 @@ let isConnected = false;
 let isTimeout = false;
 let timeoutId = null;
 
-navigator.usb.getDevices().then((devices) => {
-  console.log(`Total devices: ${devices.length}`);
-  devices.forEach((device) => {
-    console.log(
-      `Product name: ${device.productName}, serial number ${device.serialNumber}`,
-    );
-  });
-});
-
 
 const connectButton = document.getElementById('connectButton');
 const output = document.getElementById('output');
 const batteryVoltageTestingRange = document.getElementById('batteryVoltageTestingRange');
-const customRange3 = document.getElementById('customRange3');
+// const customRange3 = document.getElementById('customRange3');
 const percentsTestingRange = document.getElementById('percentsTestingRange');
 const resetErrorBtn = document.getElementById('resetErrorBtn');
 const exportStatisticButton = document.getElementById('exportStatisticButton');
@@ -80,14 +71,14 @@ batteryVoltageTestingRange.addEventListener('input', () => {
   bmsUI.updateCells({ cell, balancing });
 });
 
-customRange3.addEventListener('input', () => {
-  const voltage = customRange3.value;
-  console.log('Voltage:', voltage);
-  const cell = [voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage];
-  const balancing = [1, 3, 5, 9, 13]
-  console.log('Balancing:', balancing);
-  bmsUI.updateCells({ cell, balancing });
-});
+// customRange3.addEventListener('input', () => {
+//   const voltage = customRange3.value;
+//   console.log('Voltage:', voltage);
+//   const cell = [voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage, voltage];
+//   const balancing = [1, 3, 5, 9, 13]
+//   console.log('Balancing:', balancing);
+//   bmsUI.updateCells({ cell, balancing });
+// });
 
 percentsTestingRange.addEventListener('input', () => {
   const RSOC = percentsTestingRange.value;
