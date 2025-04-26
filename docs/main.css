@@ -14114,6 +14114,33 @@ body {
   transform: translateX(-3px);
 }
 
+.custom-input[type=number]::-webkit-inner-spin-button,
+.custom-input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.custom-input[type=number] {
+  -moz-appearance: textfield;
+  border: none;
+  outline: none;
+  background: transparent;
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+  max-width: 100px;
+  border-bottom: 1px solid transparent;
+}
+.custom-input[type=number]:focus {
+  border-bottom: 1px solid #0dcaf0;
+}
+.custom-input[type=number]:focus::-moz-placeholder {
+  color: #0dcaf0;
+}
+.custom-input[type=number]:focus::placeholder {
+  color: #0dcaf0;
+}
+
 .flash-text {
   animation: flashText 1s ease-in-out;
 }

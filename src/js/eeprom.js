@@ -1,5 +1,6 @@
 
-import { BMSMain, registers } from './variables';
+import { BMSMain, registers, isEEPROM } from './variables';
+import { EEPROMDisplay } from './ui';
 
 let isEEPROMChanged = false;
 
@@ -10,7 +11,6 @@ openRequest.onupgradeneeded = function (event) {
     const db = event.target.result;
     if (!db.objectStoreNames.contains('eeprom-data')) {
         const store = db.createObjectStore("eeprom-data", { keyPath: "name" });
-
         store.add({ name: 'func_config', data: [] });
         store.add({ name: 'ntc_config', data: [] });
         store.add({ name: 'cap_100', data: 0 });
@@ -33,15 +33,73 @@ openRequest.onerror = function (event) {
     console.error("Database error:", event.target.error);
 };
 
+
+
+
 openRequest.onsuccess = function (event) {
     db = event.target.result;
     console.log('Database opened successfully');
+
+    // Создаем транзакцию
+    const transaction = db.transaction('eeprom-data', 'readonly');
+    const store = transaction.objectStore('eeprom-data');
+
+    // Запрашиваем все данные
+    const getAllRequest = store.getAll();
+
+    getAllRequest.onsuccess = function (event) {
+        // Получаем данные из события, а не нового запроса
+        const data = event.target.result;
+        console.log('All data from IndexedDB:', data);
+
+        // const EEPROM_UI = new EEPROMDisplay(data);
+        // console.log(EEPROM_UI.getHTML());
+
+        // Можно преобразовать в удобный формат
+        // const formattedData = {};
+        // data.forEach(item => {
+        //     formattedData[item.name] = item.data;
+        // });
+        // console.log('Formatted data:', formattedData);
+    };
+
+    getAllRequest.onerror = function (event) {
+        console.error('Error reading data:', event.target.error);
+    };
+
+    transaction.oncomplete = function () {
+        console.log('Transaction completed');
+    };
+
+    transaction.onerror = function (event) {
+        console.error('Transaction error:', event.target.error);
+    };
 
     db.onversionchange = function () {
         db.close();
         console.log('Database is outdated, please reload the page');
     };
 };
+
+
+// openRequest.onsuccess = function (event) {
+//     db = event.target.result;
+
+//     const transaction = db.transaction('eeprom-data', 'readonly');
+//     const store = transaction.objectStore('eeprom-data');
+
+//     store.getAll().onsuccess = function () {
+//         const data = store.getAll();
+//         console.log(data.result);
+//     };
+
+//     console.log('Database opened successfully');
+
+//     db.onversionchange = function () {
+//         db.close();
+//         console.log('Database is outdated, please reload the page');
+//     };
+// };
 
 function updateEepromData(register, value) {
     return new Promise((resolve, reject) => {
@@ -84,11 +142,13 @@ export function getAllEepromData() {
         const request = store.getAll();
 
         request.onsuccess = () => {
-            const result = {};
-            request.result.forEach(item => {
-                result[item.name] = item.data;
-            });
-            resolve(result);
+            // const result = {};
+            // request.result.forEach(item => {
+            //     result[item.name] = item.data;
+            // });
+            // resolve(result);
+
+            resolve(request.result);
         };
 
         request.onerror = (event) => reject(event.target.error);
@@ -142,7 +202,7 @@ export function eepromRead(response) {
         case 0x2E:
             for (let i = 0; i < 8; i++) { result[`ntc${i + 1}`] = !!((data >> i) & 0x01) ? true : false; }
             // for (let i = 0; i < 8; i++) { value[`ntc${i + 1}`] = !!((data >> i) & 0x01) ? true : false; }
-            
+
             // result[registers[register]] = value;
             break;
 
@@ -158,6 +218,7 @@ export function eepromRead(response) {
             break;
 
         case 0x17: // cycle_cnt
+        case 0x2F: // cell_cnt
             value = data;
             result[registers[register]] = data;
             break;
@@ -274,7 +335,7 @@ export function eepromWrite(data) {
         }
 
         case 'func_config': {
-            if (!isEEPROM) throw new Error('(!) You are NOT in EEPROM mode');
+            if (!isEEPROM.value) throw new Error('(!) You are NOT in EEPROM mode');
             if (!data.func_config || typeof data.func_config !== 'object') {
                 throw new Error('func_config data is invalid');
             }
@@ -301,7 +362,7 @@ export function eepromWrite(data) {
         }
 
         case 'ntc_config': {
-            if (!isEEPROM) throw new Error('(!) You are NOT in EEPROM mode');
+            if (!isEEPROM.value) throw new Error('(!) You are NOT in EEPROM mode');
             if (!data.ntc_config || typeof data.ntc_config !== 'object') {
                 throw new Error('ntc_config data is invalid');
             }

@@ -1,6 +1,84 @@
 import * as bootstrap from 'bootstrap';
 import ApexCharts from 'apexcharts'
+import { registers_description, registers_unit } from "./variables";
 
+
+export class EEPROMDisplay {
+    constructor(data) {
+        if (!data) throw new Error('(!) data is empty');
+        this.data = data;
+        this.#render();
+    }
+
+    #render() {
+        this.container = document.createElement('div');
+        this.container.classList.add('container', 'p-3');
+        this.table = document.createElement('table');
+        this.table.classList.add('table', 'table-hover', 'text-success-emphasis');
+        this.thed = `
+          <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Data</th>
+                <th scope="col">Unit</th>
+            </tr>
+            </thead>`;
+        this.table.innerHTML = this.thed;
+
+        this.tbody = document.createElement('tbody', 'text-secondary-emphasis');
+
+        const formattedData = {};
+        this.data.forEach(item => {
+
+            if (item.name !== 'func_config' && item.name !== 'ntc_config') {
+
+                formattedData[item.name] = item.data;
+                const tr = `
+                <tr>
+                    <td>${registers_description[item.name] || 'Неизвестный параметр'}</td>
+                    <td><input class="custom-input" value="${item.data[item.name]}" name="${item.name}" type="number"></td>
+                    <td>${registers_unit[item.name] || ''}</td>
+                </tr>`
+                this.tbody.innerHTML += tr;
+
+            } else {
+                console.log('func_config or ntc_config');
+            }
+
+        });
+        this.table.appendChild(this.tbody);
+        this.container.appendChild(this.table);
+
+        this.controls = document.createElement('div');
+        this.controls.classList.add('d-flex', 'justify-content-end');
+
+        const saveBtn = document.createElement('button');
+        saveBtn.classList.add('btn', 'btn-info', 'text-light', 'me-2');
+        saveBtn.textContent = 'Save';
+        saveBtn.addEventListener('click', () => {
+            console.log('Save button clicked');
+
+            this.table.querySelectorAll('input').forEach(input => {
+                if (!Number(input.value)) { console.error('Not a number'); return; }
+                console.log(input.name, input.value);
+            })
+
+        });
+        this.controls.appendChild(saveBtn);
+
+        const refreshBtn = document.createElement('button');
+        refreshBtn.classList.add('btn', 'btn-info', 'text-light', 'me-2');
+        refreshBtn.textContent = 'Refresh';
+        refreshBtn.addEventListener('click', () => {
+            console.log('Refresh button clicked');
+        });
+        this.controls.appendChild(refreshBtn);
+        this.container.appendChild(this.controls);
+    }
+
+    getHTML() { return this.container; }
+
+}
 
 export class Progress {
     constructor() {
@@ -95,9 +173,8 @@ export class BMS {
         this.batteryMaxVoltage = 4.10;
         this.batteryMinVoltage = 3.10;
 
-        this.max_cell_voltage = 4.2;
-        this.medium_cell_voltage = 3.8;
-        this.min_cell_voltage = 3.3;
+        this.max_cell_voltage = 4.15;
+        this.min_cell_voltage = 3.00;
 
         if (this.modalElement) {
             this.modal = new bootstrap.Modal(this.modalElement, { keyboard: false })
@@ -239,18 +316,17 @@ export class BMS {
 
             if (!isNaN(voltage)) {
                 batteryElement.textContent = voltage.toFixed(3);
-                const level = Math.max(0, Math.min((voltage - 2.8) / (4.2 - 2.8), 1));
+                const level = Math.max(0, Math.min((voltage - 2.9) / (this.max_cell_voltage - this.min_cell_voltage), 1));
 
                 bars.forEach((bar, index) => {
                     bar.classList.forEach(className => { if (className !== 'bar') { bar.classList.remove(className); } })
 
                     if (index < Math.floor(level * bars.length)) {
-                        // bar.classList.add(voltage >= this.medium_cell_voltage ? 'high' : voltage >= this.min_cell_voltage ? 'medium' : 'low');
-                        bar.classList.add(voltage >= this.medium_cell_voltage ? 'high' : voltage >= this.min_cell_voltage ? 'medium' : voltage >= this.min_cell_voltage ? 'low' : 'danger');
+                        bar.classList.add(voltage >= (this.max_cell_voltage * 0.95) ? 'high' : voltage >= this.min_cell_voltage ? 'medium' : 'low');
                     } else {
                         bar.classList.add('empty');
                     }
-                });;
+                });
             } else {
                 console.error('Invalid cell value:', cells[i]);
                 batteryElement.textContent = 'N/A';

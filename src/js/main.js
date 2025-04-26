@@ -1,10 +1,11 @@
 import '../scss/styles.scss';
 import '../scss/toggle.scss';
+import * as bootstrap from 'bootstrap';
 // import { BatteryDisplay, MainInfoDisplay } from './ui';
-import { BMS, Progress } from './ui';
+import { BMS, Progress, EEPROMDisplay } from './ui';
 import { saveBLEData, importBLEData } from './database';
-import { SERVICE_UUID, CHARACTERISTIC_RX_UUID, CHARACTERISTIC_TX_UUID, protectionStatusBits, BMSMain, registers } from './variables';
-import { eepromRead, eepromWrite } from './eeprom';
+import { SERVICE_UUID, CHARACTERISTIC_RX_UUID, CHARACTERISTIC_TX_UUID, protectionStatusBits, BMSMain, registers, isEEPROM } from './variables';
+import { eepromRead, eepromWrite, getAllEepromData } from './eeprom';
 
 const bmsUI = new BMS('main');
 document.addEventListener('myCustomEvent', (e) => { console.log('Получены данные:', e.detail); });
@@ -16,7 +17,6 @@ let characteristic_rx = null;
 let bmsDataError = false;
 let device = null;
 let requestInterval = null;
-let isEEPROM = false;
 let isConnected = false;
 let isTimeout = false;
 let timeoutId = null;
@@ -31,6 +31,30 @@ const resetErrorBtn = document.getElementById('resetErrorBtn');
 const exportStatisticButton = document.getElementById('exportStatisticButton');
 const importStatisticButton = document.getElementById('importStatisticButton');
 const timeoutBtn = document.getElementById('timeoutBtn');
+const openEepromBtn = document.getElementById('open-eeprom');
+
+openEepromBtn.addEventListener('click', async () => {
+  if (document.querySelector('#graphics')) {
+    
+    const eepromData = await getAllEepromData();
+
+    console.log(eepromData);
+    
+    const graphicsModal = document.querySelector('#graphics');
+
+    if(!graphicsModal) return console.log('Modal not found');
+
+    const EEPROM_UI = new EEPROMDisplay(eepromData);
+    graphicsModal.querySelector('.modal-body').innerHTML = '';
+    graphicsModal.querySelector('.modal-body').appendChild(EEPROM_UI.getHTML());
+
+    const myModal = new bootstrap.Modal(graphicsModal, {})
+    
+    myModal.show();
+
+  }
+})
+
 
 exportStatisticButton.addEventListener('click', () => {
   const data = JSON.parse(localStorage.getItem('bleDataCollection')) || [];
@@ -173,7 +197,7 @@ connectButton.addEventListener('click', async () => {
       // console.log('Получены данные', [...new Uint8Array(data)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
 
       requestInterval = setInterval(async () => {
-        if (isEEPROM) return;
+        if (isEEPROM.value) return;
         if (mainRequestsCount >= mainRequestsSize) mainRequestsCount = 0;
         requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([0xA5]), register: new Uint8Array([mainRequests[mainRequestsCount]]) }).
           then((data) => { processData(data); });
@@ -186,7 +210,7 @@ connectButton.addEventListener('click', async () => {
 
     bmsUI.setCallback((data) => {
 
-      // if (!isEEPROM) {
+      // if (!isEEPROM.value) {
       //   const enterEEPROMCommand = eepromWrite({ eepromMode: true });
       //   console.log('Data to write (EEPROM):', [...new Uint8Array(enterEEPROMCommand)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
       //   requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([enterEEPROMCommand[0]]), register: new Uint8Array([enterEEPROMCommand[1]]), data: new Uint8Array(enterEEPROMCommand.slice(2)) })
@@ -201,7 +225,7 @@ connectButton.addEventListener('click', async () => {
         // requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([dataToWrite[0]]), register: new Uint8Array([dataToWrite[1]]), data: new Uint8Array(EEPROM_ENTER.slice(2)) }).
         then((dataToRead) => { processData(dataToRead); });
 
-      // if (isEEPROM) {
+      // if (isEEPROM.value) {
       //   const exitEEPROMCommand = eepromWrite({ eepromMode: false });
       //   console.log('Data to write (EEPROM):', [...new Uint8Array(exitEEPROMCommand)].map(b => b.toString(16)).join(' ').toLocaleUpperCase());
       //   requestData(characteristic_tx, characteristic_rx, { commadType: new Uint8Array([exitEEPROMCommand[0]]), register: new Uint8Array([exitEEPROMCommand[1]]), data: new Uint8Array(exitEEPROMCommand.slice(2)) })
@@ -248,7 +272,7 @@ connectButton.addEventListener('click', async () => {
 
 
 async function requestData(characteristic_tx, characteristic_rx, { commadType, register, data = null }) {
-  // if (isEEPROM) console.warn('EEPROM Mode Enabled');
+  // if (isEEPROM.value) console.warn('EEPROM Mode Enabled');
   if (!(commadType instanceof Uint8Array)) throw new Error('(!) Command type must be a Uint8Array');
   if (!(register instanceof Uint8Array)) throw new Error('(!) Register must be a Uint8Array');
   if (data !== null && !(data instanceof Uint8Array)) throw new Error('(!) Data must be a Uint8Array');
@@ -311,7 +335,7 @@ function processData(data) {
 
   if (data[1] === 0x00) {
     console.log('Enter EEPROM read');
-    isEEPROM = true;
+    isEEPROM.value = true;
     const progress = new Progress();
     progress.show();
     const regs = Object.keys(registers);
@@ -375,11 +399,11 @@ function processData(data) {
 
   if (data[1] === 0x01) {
     console.log('Exit EEPROM read');
-    isEEPROM = false;
+    isEEPROM.value = false;
     return;
   }
 
-  if (isEEPROM) {
+  if (isEEPROM.value) {
     const result = eepromRead(data);
     if (!result) return;
     bmsUI.updateEEPROM(result);

@@ -8,7 +8,7 @@ body {
     font-family: "Roboto", sans-serif;
 }
 
-#customRange3{
+#customRange3 {
     opacity: 0.5 !important;
 
     &:hover {
@@ -24,12 +24,36 @@ body {
 
 .clickable {
     cursor: pointer;
-    width: 150px; 
+    width: 150px;
     height: 75px;
     transition: transform .2s;
 
     &:hover {
         transform: translateX(-3px);
+    }
+}
+
+.custom-input[type="number"]::-webkit-inner-spin-button,
+.custom-input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.custom-input[type="number"] {
+    -moz-appearance: textfield;
+    border: none;
+    outline: none;
+    background: transparent;
+    appearance: none;
+    max-width: 100px;
+    border-bottom: 1px solid transparent;
+
+    &:focus {
+        border-bottom: 1px solid $main-theme-color;
+    }
+
+    &:focus::placeholder {
+        color: $main-theme-color;
     }
 }
 
@@ -166,7 +190,7 @@ body {
 }
 
 .blink {
-    animation: blink 1.5s ease-in-out infinite; 
+    animation: blink 1.5s ease-in-out infinite;
 }
 
 .water-wave3 {
